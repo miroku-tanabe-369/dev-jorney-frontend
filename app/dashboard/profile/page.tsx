@@ -179,55 +179,6 @@ export default function ProfilePage() {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Certifications */}
-              <Card className="border-border bg-card">
-                <CardHeader>
-                  <CardTitle className="text-card-foreground">Certifications</CardTitle>
-                  <CardDescription>Your earned certificates and achievements</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      {
-                        name: "Frontend Development Master",
-                        issuer: "DevJourney",
-                        date: "March 2024",
-                        color: "text-primary",
-                      },
-                      {
-                        name: "JavaScript Advanced Patterns",
-                        issuer: "DevJourney",
-                        date: "February 2024",
-                        color: "text-accent",
-                      },
-                      {
-                        name: "Responsive Web Design",
-                        issuer: "DevJourney",
-                        date: "January 2024",
-                        color: "text-info",
-                      },
-                    ].map((cert, index) => (
-                      <div
-                        key={index}
-                        className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-4"
-                      >
-                        <div
-                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted ${cert.color}`}
-                        >
-                          <Award className="h-5 w-5" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-foreground">{cert.name}</h4>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            Issued by {cert.issuer} • {cert.date}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
         </div>

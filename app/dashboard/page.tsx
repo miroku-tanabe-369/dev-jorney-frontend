@@ -135,60 +135,6 @@ export default function HomePage() {
               </CardContent>
             </Card>
           </div>
-
-          {/* Next Recommended Learning */}
-          <Card className="border-border bg-card">
-            <CardHeader>
-              <CardTitle className="text-card-foreground">Next Recommended Learning</CardTitle>
-              <CardDescription>Based on your current progress and skill tree path</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex-1 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-xl font-semibold text-card-foreground">TypeScript Fundamentals</h3>
-                    <Badge variant="secondary">Level 5</Badge>
-                  </div>
-
-                  <p className="text-muted-foreground">
-                    Learn the basics of TypeScript including types, interfaces, and generics. Essential for building
-                    type-safe React applications.
-                  </p>
-
-                  <div className="flex flex-wrap gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">
-                        Estimated: <span className="font-medium text-foreground">4 hours</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Target className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">
-                        Difficulty: <span className="font-medium text-foreground">Intermediate</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Star className="h-4 w-4 text-accent" />
-                      <span className="text-muted-foreground">
-                        Reward: <span className="font-medium text-accent">+200 SP</span>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Focus Area:</span>
-                    <Badge className="bg-info/20 text-info hover:bg-info/30">Type System</Badge>
-                  </div>
-                </div>
-
-                <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 lg:ml-6">
-                  Start Learning
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </main>
     </div>
