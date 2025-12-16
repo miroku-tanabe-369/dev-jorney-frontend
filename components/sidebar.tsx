@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils"
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Skill Tree", href: "/dashboard/skill-tree", icon: Network },
-  { name: "Quest Detail", href: "/dashboard/quest-detail", icon: FileText },
   { name: "Profile", href: "/dashboard/profile", icon: User },
 ]
 

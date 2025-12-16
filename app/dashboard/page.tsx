@@ -149,8 +149,9 @@ export default function HomePage() {
                   </div>
                 </div>
 
+                {/* クエスト詳細画面へ遷移 */}
                 {dashboardData?.currentQuest && (
-                  <Link href={`/dashboard/quest-detail?questCode=${dashboardData.currentQuest.questCode}`}>
+                  <Link href={`/dashboard/quest-detail/${dashboardData.currentQuest.questCode}`}>
                     <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
                       Continue Learning
                       <ArrowRight className="ml-2 h-4 w-4" />

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useParams } from "next/navigation"
 import { Sidebar } from "@/components/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -8,19 +9,37 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { Clock, Target, Star, BookOpen, CheckCircle2 } from "lucide-react"
+import { QuestDetailResponseDto } from "@/types/quest"
+import axios from "axios"
 
 export default function QuestDetailPage() {
-  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({
-    "1": true,
-    "2": true,
-    "3": false,
-    "4": false,
-    "5": false,
-  })
+  const params = useParams() // パスパラメータを取得
+  const questCode = params.questCode as string // /dashboard/quest-detail/:questCode から取得
+  
+  const [questDetailData, setQuestDetailData] = useState<QuestDetailResponseDto | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({})
 
-  const totalTasks = Object.keys(checkedItems).length
-  const completedTasks = Object.values(checkedItems).filter(Boolean).length
-  const progress = (completedTasks / totalTasks) * 100
+  //画面描画に必要な情報を取得
+  useEffect(() => {
+    if (!questCode) {
+      setError('Quest code is required');
+      setLoading(false);
+      return;
+    }
+
+    axios.get<QuestDetailResponseDto>(`http://localhost:3000/quest-detail/${questCode}`)
+      .then(response => {
+        setQuestDetailData(response.data);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('Error fetching quest detail data:', error);
+        setError('Failed to load quest detail data');
+        setLoading(false);
+      });
+  }, [questCode])
 
   return (
     <div className="flex min-h-screen">
@@ -163,10 +182,21 @@ export default function QuestDetailPage() {
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Overall Progress</span>
                       <span className="font-medium text-foreground">
-                        {completedTasks}/{totalTasks} completed
+                        {questDetailData ? (
+                          <>
+                            {Object.values(checkedItems).filter(Boolean).length}/{questDetailData.checklistItems.length} completed
+                          </>
+                        ) : (
+                          '0/0 completed'
+                        )}
                       </span>
                     </div>
-                    <Progress value={progress} className="h-2" />
+                    <Progress 
+                      value={questDetailData && questDetailData.checklistItems.length > 0 
+                        ? (Object.values(checkedItems).filter(Boolean).length / questDetailData.checklistItems.length) * 100 
+                        : 0} 
+                      className="h-2" 
+                    />
                   </div>
 
                   <div className="space-y-3 border-t border-border pt-4">
@@ -221,3 +251,4 @@ export default function QuestDetailPage() {
     </div>
   )
 }
+
