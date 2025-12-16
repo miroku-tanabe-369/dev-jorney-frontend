@@ -106,7 +106,7 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-card-foreground">{dashboardData?.userInfo.requiredExp}</div>
-                <Progress value={65} className="mt-2" />
+                <Progress value={dashboardData?.userInfo.progress} className="mt-2" />
               </CardContent>
             </Card>
           </div>
