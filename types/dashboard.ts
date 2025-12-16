@@ -24,6 +24,7 @@ export interface UserInfoDto {
  * quest_mst, quest_progress_tranテーブルから取得
  */
 export interface ProgressQuestInfoDto {
+  questCode: string;
   questName: string;
   questDetail: string;
   progress: number;

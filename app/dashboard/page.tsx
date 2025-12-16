@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Sidebar } from "@/components/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -148,10 +149,14 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-                  Continue Learning
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+                {dashboardData?.currentQuest && (
+                  <Link href={`/dashboard/quest-detail?questCode=${dashboardData.currentQuest.questCode}`}>
+                    <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                      Continue Learning
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                )}
               </CardContent>
             </Card>
 
