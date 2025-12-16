@@ -1,11 +1,59 @@
+'use client'
+
+import { useState, useEffect } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Trophy, Star, Clock, Target, ArrowRight, CheckCircle2 } from "lucide-react"
+import axios from "axios"
+import { UserDashboardResponseDto, LatestCompletedQuestInfoDto } from "@/types/dashboard"
+
+// 日付を相対的な文字列に変換するヘルパー関数
+function formatRelativeDate(date: Date): string {
+  const now = new Date();
+  const diffTime = now.getTime() - new Date(date).getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) {
+    return "Today";
+  } else if (diffDays === 1) {
+    return "1 day ago";
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  } else if (diffDays < 14) {
+    return "1 week ago";
+  } else if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7);
+    return `${weeks} weeks ago`;
+  } else if (diffDays < 365) {
+    const months = Math.floor(diffDays / 30);
+    return `${months} months ago`;
+  } else {
+    const years = Math.floor(diffDays / 365);
+    return `${years} year${years > 1 ? 's' : ''} ago`;
+  }
+}
 
 export default function HomePage() {
+  const [dashboardData, setDashboardData] = useState<UserDashboardResponseDto | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    axios.get<UserDashboardResponseDto>('http://localhost:3000/users/dashboard')
+      .then(response => {
+        setDashboardData(response.data);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('Error fetching dashboard data:', error);
+        setError('Failed to load dashboard data');
+        setLoading(false);
+      });
+  }, []);
+
   return (
     <div className="flex min-h-screen">
       <Sidebar />
@@ -26,8 +74,16 @@ export default function HomePage() {
                 <Trophy className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-card-foreground">Level 5</div>
-                <p className="mt-1 text-xs text-muted-foreground">Intermediate Developer</p>
+                {loading ? (
+                  <div className="text-3xl font-bold text-card-foreground">Loading...</div>
+                ) : error ? (
+                  <div className="text-sm text-destructive">{error}</div>
+                ) : (
+                  <>
+                    <div className="text-3xl font-bold text-card-foreground">{dashboardData?.userInfo.currentLevel}</div>
+                    <p className="mt-1 text-xs text-muted-foreground">Intermediate Developer</p>
+                  </>
+                )}
               </CardContent>
             </Card>
 
@@ -37,7 +93,7 @@ export default function HomePage() {
                 <Star className="h-4 w-4 text-accent" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-card-foreground">2,450 SP</div>
+                <div className="text-3xl font-bold text-card-foreground">{dashboardData?.userInfo.totalSkillPoint}</div>
                 <p className="mt-1 text-xs text-muted-foreground">+180 this week</p>
               </CardContent>
             </Card>
@@ -48,7 +104,7 @@ export default function HomePage() {
                 <Target className="h-4 w-4 text-info" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-card-foreground">550 SP</div>
+                <div className="text-3xl font-bold text-card-foreground">{dashboardData?.userInfo.requiredExp}</div>
                 <Progress value={65} className="mt-2" />
               </CardContent>
             </Card>
@@ -65,30 +121,30 @@ export default function HomePage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-card-foreground">Advanced React Patterns</h3>
+                    <h3 className="font-semibold text-card-foreground">{dashboardData?.currentQuest?.questName}</h3>
                     <Badge variant="secondary">Level 5</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Master advanced React patterns including render props, compound components, and state reducers.
+                    {dashboardData?.currentQuest?.questDetail}
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Progress</span>
-                    <span className="font-medium text-card-foreground">7/12 tasks completed</span>
+                    <span className="font-medium text-card-foreground">{dashboardData?.currentQuest?.progress} completed</span>
                   </div>
-                  <Progress value={58} className="h-2" />
+                  <Progress value={dashboardData?.currentQuest?.progress} className="h-2" />
                 </div>
 
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />
-                    <span>~2 hours left</span>
+                    <span>~{dashboardData?.currentQuest?.recommendedTime} left</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 text-accent" />
-                    <span>+150 SP</span>
+                    <span>+{dashboardData?.currentQuest?.skillPoint} SP</span>
                   </div>
                 </div>
 
@@ -106,32 +162,36 @@ export default function HomePage() {
                 <CardDescription>Your latest completed quests and earned SP</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {[
-                    { title: "JavaScript ES6 Fundamentals", sp: 100, date: "2 days ago" },
-                    { title: "CSS Grid Mastery", sp: 120, date: "5 days ago" },
-                    { title: "Git & GitHub Essentials", sp: 80, date: "1 week ago" },
-                    { title: "Responsive Web Design", sp: 110, date: "1 week ago" },
-                  ].map((achievement, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20">
-                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                {loading ? (
+                  <div className="text-sm text-muted-foreground">Loading achievements...</div>
+                ) : error ? (
+                  <div className="text-sm text-destructive">{error}</div>
+                ) : dashboardData?.latestCompletedQuests && dashboardData.latestCompletedQuests.length > 0 ? (
+                  <div className="space-y-4">
+                    {dashboardData.latestCompletedQuests.map((quest: LatestCompletedQuestInfoDto) => (
+                      // keyはReactのリストレンダリングにおいて必須の属性
+                      <div
+                        key={quest.questCode}
+                        className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20">
+                            <CheckCircle2 className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-card-foreground">{quest.questName}</p>
+                            <p className="text-xs text-muted-foreground">{formatRelativeDate(quest.completedAt)}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-card-foreground">{achievement.title}</p>
-                          <p className="text-xs text-muted-foreground">{achievement.date}</p>
-                        </div>
+                        <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary">
+                          +{quest.skillPoint} SP
+                        </Badge>
                       </div>
-                      <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary">
-                        +{achievement.sp} SP
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">No completed quests yet.</div>
+                )}
               </CardContent>
             </Card>
           </div>
