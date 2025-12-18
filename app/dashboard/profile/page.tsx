@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Trophy, Star, Target, Flame, Calendar, Award, Edit2, Save, X, Camera } from "lucide-react"
-import axios from "axios"
 import { UserDetailResponseDto, UserSkillInfoDto } from "@/types/profile"
 import { useEffect, useState, useRef } from "react"
 import { getLevelRank } from "@/lib/user"
+import apiClient from "@/lib/api-client"
 
 export default function ProfilePage() {
 
@@ -37,7 +37,7 @@ export default function ProfilePage() {
   // プロフィールデータを取得する関数
   const fetchUserProfile = async () => {
     try {
-      const response = await axios.get<UserDetailResponseDto>('http://localhost:3000/users/profile')
+      const response = await apiClient.get<UserDetailResponseDto>('/users/profile')
       setUserProfile(response.data)
       // フォームデータを初期化
       setEditFormData({
@@ -111,19 +111,13 @@ export default function ProfilePage() {
   const handleSaveUserCard = async () => {
     try {
       setError(null)
-      await axios.put(
-        'http://localhost:3000/users/profile',
+      await apiClient.put(
+        '/users/profile',
         {
           name: editFormData.name,
           email: editFormData.email,
           profile: editFormData.profile,
           icon: editFormData.icon,
-        },
-        {
-          headers: {
-            // TODO: 認証トークンを設定（JWTトークンが必要）
-            // 'Authorization': `Bearer ${token}`
-          }
         }
       )
       
@@ -159,19 +153,13 @@ export default function ProfilePage() {
   const handleSaveBasicInfo = async () => {
     try {
       setError(null)
-      await axios.put(
-        'http://localhost:3000/users/profile',
+      await apiClient.put(
+        '/users/profile',
         {
           name: editFormData.name,
           email: editFormData.email,
           profile: editFormData.profile,
           icon: editFormData.icon,
-        },
-        {
-          headers: {
-            // TODO: 認証トークンを設定（JWTトークンが必要）
-            // 'Authorization': `Bearer ${token}`
-          }
         }
       )
       

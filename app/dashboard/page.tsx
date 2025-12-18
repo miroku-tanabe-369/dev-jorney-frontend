@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Trophy, Star, Clock, Target, ArrowRight, CheckCircle2 } from "lucide-react"
-import axios from "axios"
+import apiClient from "@/lib/api-client"
 import { UserDashboardResponseDto, LatestCompletedQuestInfoDto } from "@/types/dashboard"
 import { formatRelativeDate } from "@/lib/date"
 
@@ -18,7 +18,7 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    axios.get<UserDashboardResponseDto>('http://localhost:3000/users/dashboard')
+    apiClient.get<UserDashboardResponseDto>('users/dashboard')
       .then(response => {
         setDashboardData(response.data);
         setLoading(false);

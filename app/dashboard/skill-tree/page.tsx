@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, Lock, Circle, ArrowRight } from "lucide-react"
 import { NodeInfoDto, SkilltreeResponseDto, QuestInfoDto } from "@/types/skilltrss"
-import axios from "axios"
+import apiClient from "@/lib/api-client"
 
 type NodeStatus = "completed" | "in-progress" | "locked"
 
@@ -31,7 +31,7 @@ export default function SkillTreePage() {
 
   //画面描画に必要な情報を取得
   useEffect(() => {
-    axios.get<SkilltreeResponseDto>('http://localhost:3000/skilltrees/FSD_001')
+    apiClient.get<SkilltreeResponseDto>('skilltrees/FSD_001')
       .then(response => {
         setSkilltreeData(response.data);
         setLoading(false);

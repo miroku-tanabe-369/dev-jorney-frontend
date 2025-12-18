@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress"
 import { Clock, Target, Star, BookOpen, CheckCircle2 } from "lucide-react"
 import { QuestDetailResponseDto } from "@/types/quest"
 import { parseJsonbToArray, getCompleteButtonText } from "@/lib/quest"
-import axios from "axios"
+import apiClient from "@/lib/api-client"
 
 export default function QuestDetailPage() {
   const params = useParams() // パスパラメータを取得
@@ -71,8 +71,8 @@ export default function QuestDetailPage() {
   // クエスト詳細データを取得する関数（共通化）
   const fetchQuestDetail = async () => {
     try {
-      const response = await axios.get<QuestDetailResponseDto>(
-        `http://localhost:3000/quest-detail/${questCode}`
+      const response = await apiClient.get<QuestDetailResponseDto>(
+        `quest-detail/${questCode}`
       );
       setQuestDetailData(response.data);
       return response.data;
@@ -104,15 +104,8 @@ export default function QuestDetailPage() {
     
     try {
       // クエスト更新APIを呼び出し
-      await axios.put(
-        `http://localhost:3000/quest-detail/update-quest-progress/${questCode}`,
-        {},
-        {
-          headers: {
-            // TODO: 認証トークンを設定（JWTトークンが必要）
-            // 'Authorization': `Bearer ${token}`
-          }
-        }
+      await apiClient.put(
+        `quest-detail/update-quest-progress/${questCode}`
       );
       
       // 成功後、データを再取得して最新の状態を反映
