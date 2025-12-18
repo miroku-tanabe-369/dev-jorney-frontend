@@ -5,6 +5,7 @@
 **/
 export interface QuestDetailResponseDto {
     questCode: string;
+    nodeCode: string;
     questName: string;
     questDetail: string;
     exp: number;

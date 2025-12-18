@@ -7,6 +7,7 @@ export interface UserDetailInfoDto {
     email: string;
     profile: string | null;
     icon: string | null;
+    progress: number; //現在のレベルの進捗度（0~100）
     currentLevel: number;
     totalSkillPoint: number;
     completedQuestCount: number;
@@ -17,6 +18,7 @@ export interface UserDetailInfoDto {
    * users_skills_tranテーブルから取得
    */
   export interface UserSkillInfoDto {
+    skillCode: string;
     skillName: string;
     level: string;
   }

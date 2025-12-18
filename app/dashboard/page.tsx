@@ -10,32 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Trophy, Star, Clock, Target, ArrowRight, CheckCircle2 } from "lucide-react"
 import axios from "axios"
 import { UserDashboardResponseDto, LatestCompletedQuestInfoDto } from "@/types/dashboard"
-
-// 日付を相対的な文字列に変換するヘルパー関数
-function formatRelativeDate(date: Date): string {
-  const now = new Date();
-  const diffTime = now.getTime() - new Date(date).getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  
-  if (diffDays === 0) {
-    return "Today";
-  } else if (diffDays === 1) {
-    return "1 day ago";
-  } else if (diffDays < 7) {
-    return `${diffDays} days ago`;
-  } else if (diffDays < 14) {
-    return "1 week ago";
-  } else if (diffDays < 30) {
-    const weeks = Math.floor(diffDays / 7);
-    return `${weeks} weeks ago`;
-  } else if (diffDays < 365) {
-    const months = Math.floor(diffDays / 30);
-    return `${months} months ago`;
-  } else {
-    const years = Math.floor(diffDays / 365);
-    return `${years} year${years > 1 ? 's' : ''} ago`;
-  }
-}
+import { formatRelativeDate } from "@/lib/date"
 
 export default function HomePage() {
   const [dashboardData, setDashboardData] = useState<UserDashboardResponseDto | null>(null);
