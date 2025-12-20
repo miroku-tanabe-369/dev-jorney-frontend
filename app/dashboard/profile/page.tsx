@@ -311,8 +311,8 @@ export default function ProfilePage() {
                       </div>
                     ) : (
                       <>
-                        <h2 className="text-2xl font-bold text-card-foreground">{userProfile?.userDetail.name}</h2>
-                        <p className="text-sm text-muted-foreground">{userProfile?.userDetail.email}</p>
+                    <h2 className="text-2xl font-bold text-card-foreground">{userProfile?.userDetail.name}</h2>
+                    <p className="text-sm text-muted-foreground">{userProfile?.userDetail.email}</p>
                       </>
                     )}
 
@@ -386,8 +386,8 @@ export default function ProfilePage() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-card-foreground">Basic Information</CardTitle>
-                      <CardDescription>Your profile details</CardDescription>
+                  <CardTitle className="text-card-foreground">Basic Information</CardTitle>
+                  <CardDescription>Your profile details</CardDescription>
                     </div>
                     {!isEditingBasicInfo && (
                       <Button
@@ -450,22 +450,22 @@ export default function ProfilePage() {
                     </>
                   ) : (
                     <>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground">Full Name</label>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Full Name</label>
                           <p className="mt-1 text-foreground">{userProfile?.userDetail.name}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground">Email</label>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Email</label>
                           <p className="mt-1 text-foreground">{userProfile?.userDetail.email}</p>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Bio</label>
-                        <p className="mt-1 text-sm leading-relaxed text-foreground">
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Bio</label>
+                    <p className="mt-1 text-sm leading-relaxed text-foreground">
                           {userProfile?.userDetail.profile || 'No bio provided'}
-                        </p>
-                      </div>
+                    </p>
+                  </div>
                     </>
                   )}
                 </CardContent>

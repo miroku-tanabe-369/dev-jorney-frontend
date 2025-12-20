@@ -4,7 +4,7 @@ import { fetchAuthSession } from '@aws-amplify/auth'
 // 共通部分のURLを定義する
 // axiosのインスタンスを定義して共通的にURLを使いまわせる
 const apiClient = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
 });
 
 // バックエンドのJWTStrategyに適合させるためのインターセプターを設定
