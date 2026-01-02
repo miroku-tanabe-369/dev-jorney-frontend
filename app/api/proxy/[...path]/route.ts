@@ -194,27 +194,33 @@ async function handleRequest(
 
     // 401エラーの場合、詳細情報をレスポンスに含める（デバッグ用）
     if (response.status === 401) {
+      let errorData: any = {};
       try {
-        const errorData = JSON.parse(data);
-        return NextResponse.json(
-          {
-            ...errorData,
-            _debug: {
-              authorizationHeaderReceived: !!authorization,
-              authorizationHeaderForwarded: !!headers['Authorization'],
-              forwardedHeaders: Object.keys(headers),
-              requestUrl: url.toString(),
-            }
-          },
-          {
-            status: response.status,
-            statusText: response.statusText,
-            headers: responseHeaders,
-          }
-        );
+        errorData = JSON.parse(data);
       } catch {
-        // JSONパースに失敗した場合はそのまま返す
+        // JSONパースに失敗した場合は文字列として扱う
+        errorData = { message: data, rawResponse: data };
       }
+      
+      // デバッグ情報を必ず含める
+      return NextResponse.json(
+        {
+          ...errorData,
+          _debug: {
+            authorizationHeaderReceived: !!authorization,
+            authorizationHeaderForwarded: !!headers['Authorization'],
+            forwardedHeaders: Object.keys(headers),
+            requestUrl: url.toString(),
+            allIncomingHeaders: Array.from(request.headers.entries()).map(([k]) => k),
+            authorizationHeaderValue: authorization ? authorization.substring(0, 50) + '...' : null,
+          }
+        },
+        {
+          status: response.status,
+          statusText: response.statusText,
+          headers: responseHeaders,
+        }
+      );
     }
 
     // クライアントにレスポンスを返す
