@@ -25,6 +25,13 @@ export default function HomePage() {
       })
       .catch(error => {
         console.error('Error fetching dashboard data:', error);
+        // デバッグ情報を表示（401エラーの場合）
+        if (error.response?.status === 401 && error.response?.data?._debug) {
+          console.error('Debug info:', error.response.data._debug);
+          console.error('Authorization header received:', error.response.data._debug.authorizationHeaderReceived);
+          console.error('Authorization header forwarded:', error.response.data._debug.authorizationHeaderForwarded);
+          console.error('Forwarded headers:', error.response.data._debug.forwardedHeaders);
+        }
         setError('Failed to load dashboard data');
         setLoading(false);
       });

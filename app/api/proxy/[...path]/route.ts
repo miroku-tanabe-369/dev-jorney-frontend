@@ -192,6 +192,31 @@ async function handleRequest(
       responseHeaders.set('content-type', 'application/json');
     }
 
+    // 401エラーの場合、詳細情報をレスポンスに含める（デバッグ用）
+    if (response.status === 401) {
+      try {
+        const errorData = JSON.parse(data);
+        return NextResponse.json(
+          {
+            ...errorData,
+            _debug: {
+              authorizationHeaderReceived: !!authorization,
+              authorizationHeaderForwarded: !!headers['Authorization'],
+              forwardedHeaders: Object.keys(headers),
+              requestUrl: url.toString(),
+            }
+          },
+          {
+            status: response.status,
+            statusText: response.statusText,
+            headers: responseHeaders,
+          }
+        );
+      } catch {
+        // JSONパースに失敗した場合はそのまま返す
+      }
+    }
+
     // クライアントにレスポンスを返す
     return new NextResponse(data, {
       status: response.status,
