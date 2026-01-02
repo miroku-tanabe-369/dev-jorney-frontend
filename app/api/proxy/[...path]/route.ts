@@ -72,9 +72,25 @@ async function handleRequest(
 
     // リクエストヘッダーをコピー（Authorizationヘッダーを含む）
     const headers: HeadersInit = {};
+    
+    // Authorizationヘッダーを明示的に取得して転送（重要）
+    // Next.jsのheadersは大文字小文字を区別しないため、小文字で取得
+    const authorization = request.headers.get('authorization');
+    if (authorization) {
+      headers['Authorization'] = authorization;
+      // デバッグ用ログ（本番環境では削除可能）
+      console.log('[Proxy] Authorization header found:', authorization.substring(0, 20) + '...');
+    } else {
+      console.warn('[Proxy] Authorization header not found in request');
+      // すべてのヘッダーをログ出力（デバッグ用）
+      console.log('[Proxy] Available headers:', Array.from(request.headers.entries()));
+    }
+    
+    // その他のヘッダーをコピー
     request.headers.forEach((value, key) => {
-      // ホスト関連のヘッダーは除外（バックエンドのホストに置き換わるため）
-      if (!['host', 'connection', 'content-length', 'content-encoding'].includes(key.toLowerCase())) {
+      const lowerKey = key.toLowerCase();
+      // ホスト関連のヘッダーとAuthorization（既に処理済み）は除外
+      if (!['host', 'connection', 'content-length', 'content-encoding', 'authorization'].includes(lowerKey)) {
         headers[key] = value;
       }
     });
@@ -95,12 +111,19 @@ async function handleRequest(
       }
     }
 
+    // デバッグ用ログ（本番環境では削除可能）
+    console.log('[Proxy] Forwarding request to:', url.toString());
+    console.log('[Proxy] Request headers:', Object.keys(headers));
+    
     // バックエンドAPIにリクエストを送信
     const response = await fetch(url.toString(), {
       method,
       headers,
       body,
     });
+    
+    // デバッグ用ログ
+    console.log('[Proxy] Response status:', response.status);
 
     // レスポンスデータを取得
     const data = await response.text();
