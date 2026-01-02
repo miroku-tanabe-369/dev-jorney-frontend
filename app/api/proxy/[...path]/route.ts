@@ -200,25 +200,50 @@ async function handleRequest(
     if (response.status === 401) {
       let errorData: any = {};
       try {
-        errorData = JSON.parse(data);
-      } catch {
+        // JSONパースを試みる
+        if (data && data.trim().length > 0) {
+          // 不完全なJSONの場合を考慮して、可能な限りパースを試みる
+          const trimmedData = data.trim();
+          if (trimmedData.startsWith('{') && trimmedData.endsWith('}')) {
+            errorData = JSON.parse(trimmedData);
+          } else {
+            // JSONが不完全な場合、手動で構築
+            errorData = { message: 'Unauthorized', statusCode: 401, rawResponse: data };
+          }
+        } else {
+          errorData = { message: 'Unauthorized', statusCode: 401 };
+        }
+      } catch (parseError) {
         // JSONパースに失敗した場合は文字列として扱う
-        errorData = { message: data, rawResponse: data };
+        console.error('[Proxy] Failed to parse error response as JSON:', parseError);
+        console.error('[Proxy] Raw response data:', data);
+        errorData = { 
+          message: 'Unauthorized', 
+          statusCode: 401, 
+          rawResponse: data,
+          parseError: parseError instanceof Error ? parseError.message : String(parseError)
+        };
       }
       
       // デバッグ情報を必ず含める
+      const debugResponse = {
+        ...errorData,
+        _debug: {
+          authorizationHeaderReceived: !!authorization,
+          authorizationHeaderForwarded: !!headers['Authorization'],
+          forwardedHeaders: Object.keys(headers),
+          requestUrl: url.toString(),
+          allIncomingHeaders: Array.from(request.headers.entries()).map(([k]) => k),
+          authorizationHeaderValue: authorization ? authorization.substring(0, 50) + '...' : null,
+          responseDataLength: data.length,
+          responseDataPreview: data.substring(0, 200),
+        }
+      };
+      
+      console.log('[Proxy] Returning 401 error with debug info:', JSON.stringify(debugResponse, null, 2));
+      
       return NextResponse.json(
-        {
-          ...errorData,
-          _debug: {
-            authorizationHeaderReceived: !!authorization,
-            authorizationHeaderForwarded: !!headers['Authorization'],
-            forwardedHeaders: Object.keys(headers),
-            requestUrl: url.toString(),
-            allIncomingHeaders: Array.from(request.headers.entries()).map(([k]) => k),
-            authorizationHeaderValue: authorization ? authorization.substring(0, 50) + '...' : null,
-          }
-        },
+        debugResponse,
         {
           status: response.status,
           statusText: response.statusText,
