@@ -151,17 +151,19 @@ async function handleRequest(
       body,
     });
     
+    // レスポンスデータを取得（一度だけ読み取る）
+    const data = await response.text();
+    
     // デバッグ用ログ
     console.log('[Proxy] Response status:', response.status);
     if (response.status === 401) {
       console.error('[Proxy] ❌ 401 Unauthorized - Token may be invalid or missing');
-      // レスポンスボディも確認
-      const errorBody = await response.text();
-      console.error('[Proxy] Error response body:', errorBody);
+      console.error('[Proxy] Error response body:', data);
+    } else if (response.status >= 400) {
+      console.error('[Proxy] ❌ Error response:', response.status, data);
+    } else {
+      console.log('[Proxy] ✅ Success response');
     }
-
-    // レスポンスデータを取得
-    const data = await response.text();
     
     // レスポンスヘッダーをコピー
     const responseHeaders = new Headers();
