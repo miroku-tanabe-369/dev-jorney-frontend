@@ -39,9 +39,15 @@ apiClient.interceptors.request.use(async (config) => {
         if (token) {
             //バックエンドのExtractJwt.fromAuthHeaderAsBearerToken() に合わせる
             config.headers.Authorization = `Bearer ${token}`;
+            // デバッグ用ログ
+            console.log('[API Client] ✅ Authorization header set:', `Bearer ${token.substring(0, 20)}...`);
+            console.log('[API Client] Request URL:', config.url);
+            console.log('[API Client] Base URL:', config.baseURL);
+        } else {
+            console.warn('[API Client] ❌ No access token found in session');
         }
     } catch (error) {
-        console.error('Error fetching auth session:', error);
+        console.error('[API Client] Error fetching auth session:', error);
     }
     return config;
 });

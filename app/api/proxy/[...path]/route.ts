@@ -4,6 +4,9 @@ import { NextRequest, NextResponse } from 'next/server';
  * プロキシAPI Routes
  * HTTPSで配信されるフロントエンドからHTTPのバックエンドAPIにアクセスする際の
  * Mixed Contentエラーを回避するため、サーバーサイドでHTTPリクエストをプロキシします。
+ * 
+ * 注意: サーバーサイドではAmplifyの認証情報を直接取得できないため、
+ * クライアントから送信されたAuthorizationヘッダーを使用します。
  */
 
 // GETリクエストの処理
@@ -75,15 +78,33 @@ async function handleRequest(
     
     // Authorizationヘッダーを明示的に取得して転送（重要）
     // Next.jsのheadersは大文字小文字を区別しないため、小文字で取得
-    const authorization = request.headers.get('authorization');
+    let authorization = request.headers.get('authorization');
+    
+    // すべてのヘッダーをログ出力（デバッグ用）
+    const allHeaders = Array.from(request.headers.entries());
+    console.log('[Proxy] ========================================');
+    console.log('[Proxy] All incoming headers:', allHeaders.map(([k, v]) => [k, k.toLowerCase() === 'authorization' ? v.substring(0, 30) + '...' : v]));
+    console.log('[Proxy] Header count:', allHeaders.length);
+    
+    // Authorizationヘッダーを複数の方法で取得を試みる
+    if (!authorization) {
+      // 大文字小文字を変えて試す
+      authorization = request.headers.get('Authorization') || 
+                      request.headers.get('AUTHORIZATION');
+    }
+    
     if (authorization) {
       headers['Authorization'] = authorization;
       // デバッグ用ログ（本番環境では削除可能）
-      console.log('[Proxy] Authorization header found:', authorization.substring(0, 20) + '...');
+      console.log('[Proxy] ✅ Authorization header found');
+      console.log('[Proxy] Authorization header length:', authorization.length);
+      console.log('[Proxy] Authorization header prefix:', authorization.substring(0, 30) + '...');
+      console.log('[Proxy] Is Bearer token?', authorization.startsWith('Bearer '));
     } else {
-      console.warn('[Proxy] Authorization header not found in request');
-      // すべてのヘッダーをログ出力（デバッグ用）
-      console.log('[Proxy] Available headers:', Array.from(request.headers.entries()));
+      console.warn('[Proxy] ❌ Authorization header not found in request');
+      console.warn('[Proxy] This will cause 401 Unauthorized error');
+      // すべてのヘッダー名を出力
+      console.log('[Proxy] Header names:', allHeaders.map(([k]) => k));
     }
     
     // その他のヘッダーをコピー
@@ -112,8 +133,16 @@ async function handleRequest(
     }
 
     // デバッグ用ログ（本番環境では削除可能）
+    console.log('[Proxy] ========================================');
+    console.log('[Proxy] Request method:', method);
+    console.log('[Proxy] Request path:', path);
     console.log('[Proxy] Forwarding request to:', url.toString());
-    console.log('[Proxy] Request headers:', Object.keys(headers));
+    console.log('[Proxy] Request headers keys:', Object.keys(headers));
+    console.log('[Proxy] Authorization in headers?', !!headers['Authorization']);
+    if (headers['Authorization']) {
+      console.log('[Proxy] Authorization value (first 30 chars):', headers['Authorization'].substring(0, 30) + '...');
+    }
+    console.log('[Proxy] ========================================');
     
     // バックエンドAPIにリクエストを送信
     const response = await fetch(url.toString(), {
@@ -124,6 +153,12 @@ async function handleRequest(
     
     // デバッグ用ログ
     console.log('[Proxy] Response status:', response.status);
+    if (response.status === 401) {
+      console.error('[Proxy] ❌ 401 Unauthorized - Token may be invalid or missing');
+      // レスポンスボディも確認
+      const errorBody = await response.text();
+      console.error('[Proxy] Error response body:', errorBody);
+    }
 
     // レスポンスデータを取得
     const data = await response.text();
