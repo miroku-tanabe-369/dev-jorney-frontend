@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { fetchAuthSession, signInWithRedirect } from '@aws-amplify/auth';
+import { fetchAuthSession, signInWithRedirect, signOut } from '@aws-amplify/auth';
 
 // アプリケーション全体の認証チェックを行う
 
@@ -28,13 +28,50 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           setIsAuthenticated(false);
           await signInWithRedirect();
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Auth check failed:', error);
         setIsAuthenticated(false);
-        try {
-          await signInWithRedirect();
-        } catch (signInError) {
-          console.error('Sign in redirect failed:', signInError);
+        
+        // UserAlreadyAuthenticatedExceptionが発生した場合、古いセッションをクリア
+        const isAlreadyAuthenticatedError = 
+          error?.name === 'UserAlreadyAuthenticatedException' || 
+          error?.message?.includes('already a signed in user');
+        
+        if (isAlreadyAuthenticatedError) {
+          console.log('Clearing stale session and redirecting to sign in...');
+          try {
+            // 古いセッションをクリア
+            await signOut();
+            // 少し待ってからサインインにリダイレクト
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await signInWithRedirect();
+          } catch (signOutError) {
+            console.error('Sign out failed:', signOutError);
+            // サインアウトに失敗しても、サインインにリダイレクトを試みる
+            try {
+              await signInWithRedirect();
+            } catch (signInError) {
+              console.error('Sign in redirect failed:', signInError);
+            }
+          }
+        } else {
+          // その他のエラーの場合は通常通りサインインにリダイレクト
+          try {
+            await signInWithRedirect();
+          } catch (signInError: any) {
+            console.error('Sign in redirect failed:', signInError);
+            // UserAlreadyAuthenticatedExceptionが発生した場合も同様に処理
+            if (signInError?.name === 'UserAlreadyAuthenticatedException' || 
+                signInError?.message?.includes('already a signed in user')) {
+              try {
+                await signOut();
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await signInWithRedirect();
+              } catch (finalError) {
+                console.error('Final sign in attempt failed:', finalError);
+              }
+            }
+          }
         }
       }
     };
