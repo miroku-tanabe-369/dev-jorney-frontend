@@ -158,11 +158,14 @@ async function handleRequest(
     console.log('[Proxy] ========================================');
     console.log('[Proxy] Response status:', response.status);
     console.log('[Proxy] Response status text:', response.statusText);
+    console.log('[Proxy] Response data length:', data.length);
+    console.log('[Proxy] Response data (first 200 chars):', data.substring(0, 200));
     
     if (response.status === 401) {
       console.error('[Proxy] ❌ 401 Unauthorized Error');
-      console.error('[Proxy] Error response body:', data);
+      console.error('[Proxy] Error response body (full):', data);
       console.error('[Proxy] Authorization header was sent?', !!headers['Authorization']);
+      console.error('[Proxy] Authorization variable exists?', !!authorization);
       if (headers['Authorization']) {
         console.error('[Proxy] Authorization header value (first 50 chars):', headers['Authorization'].substring(0, 50) + '...');
       } else {
@@ -171,6 +174,7 @@ async function handleRequest(
       }
       console.error('[Proxy] Request URL:', url.toString());
       console.error('[Proxy] All forwarded headers:', Object.keys(headers));
+      console.error('[Proxy] Authorization variable value (first 50 chars):', authorization ? authorization.substring(0, 50) + '...' : 'null');
     } else if (response.status >= 400) {
       console.error('[Proxy] ❌ Error response:', response.status, data);
     } else {

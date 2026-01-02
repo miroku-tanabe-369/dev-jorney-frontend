@@ -28,16 +28,31 @@ export default function HomePage() {
         // デバッグ情報を表示（401エラーの場合）
         if (error.response?.status === 401) {
           console.error('========== 401 Error Debug Info ==========');
-          if (error.response?.data?._debug) {
-            console.error('Debug info:', error.response.data._debug);
-            console.error('Authorization header received:', error.response.data._debug.authorizationHeaderReceived);
-            console.error('Authorization header forwarded:', error.response.data._debug.authorizationHeaderForwarded);
-            console.error('Forwarded headers:', error.response.data._debug.forwardedHeaders);
-            console.error('All incoming headers:', error.response.data._debug.allIncomingHeaders);
-            console.error('Authorization header value:', error.response.data._debug.authorizationHeaderValue);
+          console.error('Full error response:', error.response);
+          console.error('Response data (raw):', error.response?.data);
+          console.error('Response data (stringified):', JSON.stringify(error.response?.data, null, 2));
+          
+          // レスポンスデータが文字列の場合、JSONパースを試みる
+          let parsedData: any = error.response?.data;
+          if (typeof error.response?.data === 'string') {
+            try {
+              parsedData = JSON.parse(error.response.data);
+              console.error('Parsed response data:', parsedData);
+            } catch (e) {
+              console.error('Failed to parse response data as JSON:', e);
+            }
+          }
+          
+          if (parsedData?._debug) {
+            console.error('✅ Debug info found:', parsedData._debug);
+            console.error('Authorization header received:', parsedData._debug.authorizationHeaderReceived);
+            console.error('Authorization header forwarded:', parsedData._debug.authorizationHeaderForwarded);
+            console.error('Forwarded headers:', parsedData._debug.forwardedHeaders);
+            console.error('All incoming headers:', parsedData._debug.allIncomingHeaders);
+            console.error('Authorization header value:', parsedData._debug.authorizationHeaderValue);
           } else {
             console.error('⚠️ Debug info not found in response');
-            console.error('Response data:', error.response?.data);
+            console.error('This means the proxy API Routes did not add debug info');
           }
           console.error('==========================================');
         }
