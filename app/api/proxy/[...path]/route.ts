@@ -154,16 +154,29 @@ async function handleRequest(
     // レスポンスデータを取得（一度だけ読み取る）
     const data = await response.text();
     
-    // デバッグ用ログ
+    // デバッグ用ログ（詳細版）
+    console.log('[Proxy] ========================================');
     console.log('[Proxy] Response status:', response.status);
+    console.log('[Proxy] Response status text:', response.statusText);
+    
     if (response.status === 401) {
-      console.error('[Proxy] ❌ 401 Unauthorized - Token may be invalid or missing');
+      console.error('[Proxy] ❌ 401 Unauthorized Error');
       console.error('[Proxy] Error response body:', data);
+      console.error('[Proxy] Authorization header was sent?', !!headers['Authorization']);
+      if (headers['Authorization']) {
+        console.error('[Proxy] Authorization header value (first 50 chars):', headers['Authorization'].substring(0, 50) + '...');
+      } else {
+        console.error('[Proxy] ⚠️ Authorization header was NOT included in forwarded headers!');
+        console.error('[Proxy] This is the root cause of the 401 error.');
+      }
+      console.error('[Proxy] Request URL:', url.toString());
+      console.error('[Proxy] All forwarded headers:', Object.keys(headers));
     } else if (response.status >= 400) {
       console.error('[Proxy] ❌ Error response:', response.status, data);
     } else {
       console.log('[Proxy] ✅ Success response');
     }
+    console.log('[Proxy] ========================================');
     
     // レスポンスヘッダーをコピー
     const responseHeaders = new Headers();
@@ -186,11 +199,18 @@ async function handleRequest(
       headers: responseHeaders,
     });
   } catch (error) {
-    console.error('Proxy error:', error);
+    console.error('[Proxy] ========================================');
+    console.error('[Proxy] ❌ Proxy error occurred');
+    console.error('[Proxy] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('[Proxy] Error message:', error instanceof Error ? error.message : String(error));
+    console.error('[Proxy] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('[Proxy] ========================================');
+    
     return NextResponse.json(
       { 
         error: 'Failed to proxy request',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
+        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : String(error)) : undefined
       },
       { status: 500 }
     );
