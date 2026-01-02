@@ -14,29 +14,39 @@ export const configureAmplify = () => {
   const logoutUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
   if (!userPoolId || !userPoolClientId || !domain) {
-    console.error('Missing required Cognito environment variables');
-    return;
+    console.error('Missing required Cognito environment variables', {
+      userPoolId: !!userPoolId,
+      userPoolClientId: !!userPoolClientId,
+      domain: !!domain,
+    });
+    throw new Error('Missing required Cognito environment variables. Please check Amplify Console environment variables.');
   }
 
   // ドメインから末尾のスラッシュを削除
   const cleanDomain = domain.replace(/\/$/, '');
 
-  Amplify.configure({
-    Auth: {
-      Cognito: {
-        userPoolId,
-        userPoolClientId,
-        loginWith: {
-          oauth: {
-            domain: cleanDomain,
-            scopes: ['openid', 'email', 'profile'],
-            redirectSignIn: [callbackUrl],
-            redirectSignOut: [logoutUrl],
-            responseType: 'code',
+  try {
+    Amplify.configure({
+      Auth: {
+        Cognito: {
+          userPoolId,
+          userPoolClientId,
+          loginWith: {
+            oauth: {
+              domain: cleanDomain,
+              scopes: ['openid', 'email', 'profile'],
+              redirectSignIn: [callbackUrl],
+              redirectSignOut: [logoutUrl],
+              responseType: 'code',
+            },
           },
         },
       },
-    },
-  }, { ssr: true });
+    }, { ssr: true });
+    console.log('Amplify configured successfully');
+  } catch (error) {
+    console.error('Failed to configure Amplify:', error);
+    throw error;
+  }
 };
 
