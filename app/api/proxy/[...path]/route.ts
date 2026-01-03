@@ -9,6 +9,14 @@ import { NextRequest, NextResponse } from 'next/server';
  * クライアントから送信されたAuthorizationヘッダーを使用します。
  */
 
+// レスポンスサイズの制限を設定（Amplifyのサーバーレス環境での制限を回避）
+export const runtime = 'nodejs';
+export const maxDuration = 30;
+
+// レスポンスサイズの制限を設定（Next.js App Router用）
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // GETリクエストの処理
 export async function GET(
   request: NextRequest,
@@ -330,22 +338,31 @@ async function handleRequest(
       console.log('[Proxy] Parsed data type:', typeof parsedData);
       console.log('[Proxy] Parsed data keys:', parsedData ? Object.keys(parsedData) : 'null');
       
-      // NextResponse.json()を使用してJSONオブジェクトを返す
-      // これにより、Next.jsが適切にレスポンスを処理し、content-lengthヘッダーも正しく設定される
-      return NextResponse.json(parsedData, {
+      // Responseオブジェクトを直接使用して、完全なレスポンスを返す
+      // Amplifyのサーバーレス環境でNextResponseが正しく動作しない場合があるため
+      const headersObj: Record<string, string> = {};
+      responseHeaders.forEach((value, key) => {
+        headersObj[key] = value;
+      });
+      
+      return new Response(data, {
         status: response.status,
         statusText: response.statusText,
-        headers: responseHeaders,
+        headers: headersObj,
       });
     } else {
       console.log('[Proxy] ⚠️ Returning text response (not JSON or parsedData is null)');
       // JSON以外の場合はテキストとして返す
       const byteLength = Buffer.byteLength(data, 'utf8');
       responseHeaders.set('content-length', byteLength.toString());
-      return new NextResponse(data, {
+      const headersObj: Record<string, string> = {};
+      responseHeaders.forEach((value, key) => {
+        headersObj[key] = value;
+      });
+      return new Response(data, {
         status: response.status,
         statusText: response.statusText,
-        headers: responseHeaders,
+        headers: headersObj,
       });
     }
   } catch (error) {
