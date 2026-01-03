@@ -14,8 +14,18 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
-  const resolvedParams = await params;
-  return handleRequest(request, resolvedParams, 'GET');
+  console.log('[Proxy] GET request received');
+  try {
+    const resolvedParams = await params;
+    console.log('[Proxy] Params resolved:', resolvedParams);
+    return handleRequest(request, resolvedParams, 'GET');
+  } catch (error) {
+    console.error('[Proxy] Error in GET handler:', error);
+    return NextResponse.json(
+      { error: 'Internal server error', details: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
+  }
 }
 
 // POSTリクエストの処理
