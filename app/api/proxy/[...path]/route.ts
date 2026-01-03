@@ -328,12 +328,12 @@ async function handleRequest(
       console.log('[Proxy] Content-Length header set:', byteLength);
       console.log('[Proxy] Full JSON string:', data);
       
-      // Responseオブジェクトを直接返す（NextResponseの代わり）
-      // Amplifyのサーバーレス環境でNextResponseが正しく動作しない場合があるため
-      return new Response(data, {
+      // NextResponseを使用してJSON文字列を返す
+      // content-lengthヘッダーを設定することで、Amplifyでレスポンスが切れないようにする
+      return new NextResponse(data, {
         status: response.status,
         statusText: response.statusText,
-        headers: Object.fromEntries(responseHeaders.entries()),
+        headers: responseHeaders,
       });
     } else {
       console.log('[Proxy] ⚠️ Returning text response (not JSON or parsedData is null)');
