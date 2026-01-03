@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { fetchAuthSession, signInWithRedirect, signOut } from '@aws-amplify/auth';
+import { setAuthCookie, removeAuthCookie } from '@/lib/set-auth-cookie';
 
 // アプリケーション全体の認証チェックを行う
 
@@ -22,14 +23,20 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       try {
         const session = await fetchAuthSession();
         if (session.tokens?.idToken) {
+          // 認証トークンをCookieに保存（Server Componentsで使用するため）
+          await setAuthCookie();
           setIsAuthenticated(true);
         } else {
+          // Cookieを削除
+          removeAuthCookie();
           // 未認証の場合はCognito Hosted UIにリダイレクト
           setIsAuthenticated(false);
           await signInWithRedirect();
         }
       } catch (error: any) {
         console.error('Auth check failed:', error);
+        // Cookieを削除
+        removeAuthCookie();
         setIsAuthenticated(false);
         
         // UserAlreadyAuthenticatedExceptionが発生した場合、古いセッションをクリア
@@ -42,11 +49,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           try {
             // 古いセッションをクリア
             await signOut();
+            removeAuthCookie();
             // 少し待ってからサインインにリダイレクト
             await new Promise(resolve => setTimeout(resolve, 100));
             await signInWithRedirect();
           } catch (signOutError) {
             console.error('Sign out failed:', signOutError);
+            removeAuthCookie();
             // サインアウトに失敗しても、サインインにリダイレクトを試みる
             try {
               await signInWithRedirect();
@@ -65,6 +74,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
                 signInError?.message?.includes('already a signed in user')) {
               try {
                 await signOut();
+                removeAuthCookie();
                 await new Promise(resolve => setTimeout(resolve, 100));
                 await signInWithRedirect();
               } catch (finalError) {

@@ -1,6 +1,3 @@
-'use client'
-
-import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Sidebar } from "@/components/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,124 +5,46 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Trophy, Star, Clock, Target, ArrowRight, CheckCircle2 } from "lucide-react"
-import apiClient from "@/lib/api-client"
 import { UserDashboardResponseDto, LatestCompletedQuestInfoDto } from "@/types/dashboard"
 import { formatRelativeDate } from "@/lib/date"
+import { serverApiRequest } from "@/lib/server-api-client"
+import { getServerToken } from "@/lib/get-server-token"
+import { redirect } from "next/navigation"
 
-export default function HomePage() {
-  const [dashboardData, setDashboardData] = useState<UserDashboardResponseDto | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+/**
+ * Dashboard Page (Server Component)
+ * サーバーサイドで直接バックエンドAPIを呼び出し、プロキシAPIルートをバイパス
+ */
+export default async function DashboardPage() {
+  // サーバーサイドで認証トークンを取得
+  const token = await getServerToken();
+  
+  if (!token) {
+    // トークンが存在しない場合はログインページにリダイレクト
+    redirect('/login');
+  }
 
-  useEffect(() => {
-    apiClient.get<UserDashboardResponseDto>('users/dashboard')
-      .then(response => {
-        console.log('[Dashboard] API response received:', response);
-        console.log('[Dashboard] Response data:', response.data);
-        console.log('[Dashboard] Response data type:', typeof response.data);
-        
-        // レスポンスデータが文字列の場合はJSONパースを試みる
-        let dashboardData: UserDashboardResponseDto;
-        
-        if (typeof response.data === 'string') {
-          const stringData: string = response.data;
-          console.log('[Dashboard] ⚠️ Response data is string, attempting to parse...');
-          console.log('[Dashboard] String length:', stringData.length);
-          console.log('[Dashboard] String preview (first 500 chars):', stringData.substring(0, 500));
-          
-          try {
-            // 不完全なJSONの場合を考慮して、可能な限りパースを試みる
-            const trimmedData = stringData.trim();
-            if (trimmedData.startsWith('{') && trimmedData.endsWith('}')) {
-              dashboardData = JSON.parse(trimmedData) as UserDashboardResponseDto;
-              console.log('[Dashboard] ✅ Successfully parsed JSON string');
-              console.log('[Dashboard] Parsed data:', dashboardData);
-            } else {
-              // JSONが不完全な場合、エラーを投げる
-              console.error('[Dashboard] ❌ JSON string is incomplete (does not start with { or end with })');
-              console.error('[Dashboard] First 100 chars:', trimmedData.substring(0, 100));
-              console.error('[Dashboard] Last 100 chars:', trimmedData.substring(Math.max(0, trimmedData.length - 100)));
-              setError('Response data is incomplete. Please check the proxy API route.');
-              setLoading(false);
-              return;
-            }
-          } catch (parseError) {
-            console.error('[Dashboard] ❌ Failed to parse JSON string:', parseError);
-            console.error('[Dashboard] Error position:', parseError instanceof SyntaxError ? (parseError as any).position : 'unknown');
-            console.error('[Dashboard] String around error position:', 
-              parseError instanceof SyntaxError && (parseError as any).position 
-                ? stringData.substring(Math.max(0, (parseError as any).position - 50), (parseError as any).position + 50)
-                : 'unknown');
-            setError('Failed to parse response data. The response may be incomplete.');
-            setLoading(false);
-            return;
-          }
-        } else {
-          // 既にオブジェクトとしてパースされている場合
-          dashboardData = response.data as UserDashboardResponseDto;
-        }
-        
-        console.log('[Dashboard] Response data keys:', dashboardData ? Object.keys(dashboardData) : 'null/undefined');
-        
-        // レスポンスデータの構造を確認
-        if (!dashboardData) {
-          console.error('[Dashboard] ❌ Response data is null or undefined');
-          setError('Invalid response data: data is null or undefined');
-          setLoading(false);
-          return;
-        }
-        
-        if (!dashboardData.userInfo) {
-          console.error('[Dashboard] ❌ Response data.userInfo is missing');
-          console.error('[Dashboard] Full response data:', JSON.stringify(dashboardData, null, 2));
-          setError('Invalid response data: userInfo is missing');
-          setLoading(false);
-          return;
-        }
-        
-        setDashboardData(dashboardData);
-        setLoading(false);
-      })
-      .catch(error => {
-        console.error('========== Error fetching dashboard data ==========');
-        console.error('Error object:', error);
-        console.error('Error response:', error.response);
-        console.error('Error status:', error.response?.status);
-        console.error('Error statusText:', error.response?.statusText);
-        console.error('Response data (raw):', error.response?.data);
-        console.error('Response data (stringified):', JSON.stringify(error.response?.data, null, 2));
-        
-        // レスポンスデータが文字列の場合、JSONパースを試みる
-        let parsedData: any = error.response?.data;
-        if (typeof error.response?.data === 'string') {
-          try {
-            parsedData = JSON.parse(error.response.data);
-            console.error('Parsed response data:', parsedData);
-          } catch (e) {
-            console.error('Failed to parse response data as JSON:', e);
-          }
-        }
-        
-        // デバッグ情報を表示（401または500エラーの場合）
-        if (error.response?.status === 401 || error.response?.status === 500) {
-          if (parsedData?._debug) {
-            console.error('✅ Debug info found:', parsedData._debug);
-            console.error('Authorization header received:', parsedData._debug.authorizationHeaderReceived);
-            console.error('Authorization header forwarded:', parsedData._debug.authorizationHeaderForwarded);
-            console.error('Forwarded headers:', parsedData._debug.forwardedHeaders);
-            console.error('All incoming headers:', parsedData._debug.allIncomingHeaders);
-            console.error('Authorization header value:', parsedData._debug.authorizationHeaderValue);
-          } else {
-            console.error('⚠️ Debug info not found in response');
-            console.error('This means the proxy API Routes did not add debug info');
-          }
-        }
-        console.error('==================================================');
-        
-        setError(`Failed to load dashboard data (${error.response?.status || 'Unknown error'})`);
-        setLoading(false);
-      });
-  }, []);
+  let dashboardData: UserDashboardResponseDto | null = null;
+  let error: string | null = null;
+
+  try {
+    // サーバーサイドで直接バックエンドAPIを呼び出し
+    dashboardData = await serverApiRequest<UserDashboardResponseDto>(
+      'users/dashboard',
+      {
+        method: 'GET',
+        token: token,
+      }
+    );
+
+    // データの検証
+    if (!dashboardData || !dashboardData.userInfo) {
+      error = 'Invalid response data: userInfo is missing';
+    }
+  } catch (apiError) {
+    console.error('[Dashboard] Error fetching dashboard data:', apiError);
+    error = apiError instanceof Error ? apiError.message : 'Failed to load dashboard data';
+  }
 
   return (
     <div className="flex min-h-screen">
@@ -147,9 +66,7 @@ export default function HomePage() {
                 <Trophy className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                {loading ? (
-                  <div className="text-3xl font-bold text-card-foreground">Loading...</div>
-                ) : error ? (
+                {error ? (
                   <div className="text-sm text-destructive">{error}</div>
                 ) : (
                   <>
@@ -240,14 +157,11 @@ export default function HomePage() {
                 <CardDescription>Your latest completed quests and earned SP</CardDescription>
               </CardHeader>
               <CardContent>
-                {loading ? (
-                  <div className="text-sm text-muted-foreground">Loading achievements...</div>
-                ) : error ? (
+                {error ? (
                   <div className="text-sm text-destructive">{error}</div>
                 ) : dashboardData?.latestCompletedQuests && dashboardData.latestCompletedQuests.length > 0 ? (
                   <div className="space-y-4">
                     {dashboardData.latestCompletedQuests.map((quest: LatestCompletedQuestInfoDto) => (
-                      // keyはReactのリストレンダリングにおいて必須の属性
                       <div
                         key={quest.questCode}
                         className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0"

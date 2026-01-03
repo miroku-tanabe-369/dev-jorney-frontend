@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchAuthSession } from '@aws-amplify/auth';
+import { setAuthCookie } from '@/lib/set-auth-cookie';
 
 // 認証時のルーティング処理を実行する
 
@@ -60,6 +61,8 @@ export default function CallbackPage() {
           const hasToken = await checkSession();
           
           if (hasToken) {
+            // 認証トークンをCookieに保存（Server Componentsで使用するため）
+            await setAuthCookie();
             setStatus('success');
             // ダッシュボードにリダイレクト
             router.push('/dashboard');
