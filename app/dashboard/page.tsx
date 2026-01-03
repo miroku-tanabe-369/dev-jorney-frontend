@@ -20,29 +20,52 @@ export default function HomePage() {
   useEffect(() => {
     apiClient.get<UserDashboardResponseDto>('users/dashboard')
       .then(response => {
+        console.log('[Dashboard] API response received:', response);
+        console.log('[Dashboard] Response data:', response.data);
+        console.log('[Dashboard] Response data type:', typeof response.data);
+        console.log('[Dashboard] Response data keys:', response.data ? Object.keys(response.data) : 'null/undefined');
+        
+        // レスポンスデータの構造を確認
+        if (!response.data) {
+          console.error('[Dashboard] ❌ Response data is null or undefined');
+          setError('Invalid response data: data is null or undefined');
+          setLoading(false);
+          return;
+        }
+        
+        if (!response.data.userInfo) {
+          console.error('[Dashboard] ❌ Response data.userInfo is missing');
+          console.error('[Dashboard] Full response data:', JSON.stringify(response.data, null, 2));
+          setError('Invalid response data: userInfo is missing');
+          setLoading(false);
+          return;
+        }
+        
         setDashboardData(response.data);
         setLoading(false);
       })
       .catch(error => {
-        console.error('Error fetching dashboard data:', error);
-        // デバッグ情報を表示（401エラーの場合）
-        if (error.response?.status === 401) {
-          console.error('========== 401 Error Debug Info ==========');
-          console.error('Full error response:', error.response);
-          console.error('Response data (raw):', error.response?.data);
-          console.error('Response data (stringified):', JSON.stringify(error.response?.data, null, 2));
-          
-          // レスポンスデータが文字列の場合、JSONパースを試みる
-          let parsedData: any = error.response?.data;
-          if (typeof error.response?.data === 'string') {
-            try {
-              parsedData = JSON.parse(error.response.data);
-              console.error('Parsed response data:', parsedData);
-            } catch (e) {
-              console.error('Failed to parse response data as JSON:', e);
-            }
+        console.error('========== Error fetching dashboard data ==========');
+        console.error('Error object:', error);
+        console.error('Error response:', error.response);
+        console.error('Error status:', error.response?.status);
+        console.error('Error statusText:', error.response?.statusText);
+        console.error('Response data (raw):', error.response?.data);
+        console.error('Response data (stringified):', JSON.stringify(error.response?.data, null, 2));
+        
+        // レスポンスデータが文字列の場合、JSONパースを試みる
+        let parsedData: any = error.response?.data;
+        if (typeof error.response?.data === 'string') {
+          try {
+            parsedData = JSON.parse(error.response.data);
+            console.error('Parsed response data:', parsedData);
+          } catch (e) {
+            console.error('Failed to parse response data as JSON:', e);
           }
-          
+        }
+        
+        // デバッグ情報を表示（401または500エラーの場合）
+        if (error.response?.status === 401 || error.response?.status === 500) {
           if (parsedData?._debug) {
             console.error('✅ Debug info found:', parsedData._debug);
             console.error('Authorization header received:', parsedData._debug.authorizationHeaderReceived);
@@ -54,9 +77,10 @@ export default function HomePage() {
             console.error('⚠️ Debug info not found in response');
             console.error('This means the proxy API Routes did not add debug info');
           }
-          console.error('==========================================');
         }
-        setError('Failed to load dashboard data');
+        console.error('==================================================');
+        
+        setError(`Failed to load dashboard data (${error.response?.status || 'Unknown error'})`);
         setLoading(false);
       });
   }, []);
