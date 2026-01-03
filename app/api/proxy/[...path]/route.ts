@@ -165,8 +165,26 @@ async function handleRequest(
       body,
     });
     
-    // レスポンスデータを取得（一度だけ読み取る）
-    const data = await response.text();
+    // レスポンスデータを取得
+    // Content-Typeを確認して、JSONの場合はパースして返す
+    const contentType = response.headers.get('content-type') || '';
+    let data: string;
+    let parsedData: any = null;
+    
+    if (contentType.includes('application/json')) {
+      // JSONレスポンスの場合、パースしてから文字列に戻す（NextResponse.jsonで使用するため）
+      try {
+        parsedData = await response.json();
+        data = JSON.stringify(parsedData);
+      } catch (parseError) {
+        // JSONパースに失敗した場合はテキストとして扱う
+        console.warn('[Proxy] Failed to parse JSON response, treating as text:', parseError);
+        data = await response.text();
+      }
+    } else {
+      // JSON以外の場合はテキストとして取得
+      data = await response.text();
+    }
     
     // デバッグ用ログ（詳細版）
     console.log('[Proxy] ========================================');
@@ -217,8 +235,10 @@ async function handleRequest(
     if (response.status === 401) {
       let errorData: any = {};
       try {
-        // JSONパースを試みる
-        if (data && data.trim().length > 0) {
+        // 既にパース済みの場合はそれを使用、そうでない場合はパースを試みる
+        if (parsedData) {
+          errorData = parsedData;
+        } else if (data && data.trim().length > 0) {
           // 不完全なJSONの場合を考慮して、可能な限りパースを試みる
           const trimmedData = data.trim();
           if (trimmedData.startsWith('{') && trimmedData.endsWith('}')) {
@@ -270,11 +290,21 @@ async function handleRequest(
     }
 
     // クライアントにレスポンスを返す
-    return new NextResponse(data, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: responseHeaders,
-    });
+    // JSONレスポンスの場合は、パース済みデータをNextResponse.jsonで返す
+    if (contentType.includes('application/json') && parsedData !== null) {
+      return NextResponse.json(parsedData, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: responseHeaders,
+      });
+    } else {
+      // JSON以外の場合はテキストとして返す
+      return new NextResponse(data, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: responseHeaders,
+      });
+    }
   } catch (error) {
     console.error('[Proxy] ========================================');
     console.error('[Proxy] ❌ Proxy error occurred');
