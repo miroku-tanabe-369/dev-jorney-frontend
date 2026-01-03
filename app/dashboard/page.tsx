@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Trophy, Star, Clock, Target, ArrowRight, CheckCircle2 } from "lucide-react"
-import apiClient, { apiRequest } from "@/lib/api-client"
+import apiClient from "@/lib/api-client"
 import { UserDashboardResponseDto, LatestCompletedQuestInfoDto } from "@/types/dashboard"
 import { formatRelativeDate } from "@/lib/date"
 
@@ -18,11 +18,53 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // ストリーミングレスポンスをサポートするため、apiRequestを使用
-    apiRequest<UserDashboardResponseDto>('users/dashboard')
-      .then(dashboardData => {
-        console.log('[Dashboard] API response received:', dashboardData);
-        console.log('[Dashboard] Response data type:', typeof dashboardData);
+    apiClient.get<UserDashboardResponseDto>('users/dashboard')
+      .then(response => {
+        console.log('[Dashboard] API response received:', response);
+        console.log('[Dashboard] Response data:', response.data);
+        console.log('[Dashboard] Response data type:', typeof response.data);
+        
+        // レスポンスデータが文字列の場合はJSONパースを試みる
+        let dashboardData: UserDashboardResponseDto;
+        
+        if (typeof response.data === 'string') {
+          const stringData: string = response.data;
+          console.log('[Dashboard] ⚠️ Response data is string, attempting to parse...');
+          console.log('[Dashboard] String length:', stringData.length);
+          console.log('[Dashboard] String preview (first 500 chars):', stringData.substring(0, 500));
+          
+          try {
+            // 不完全なJSONの場合を考慮して、可能な限りパースを試みる
+            const trimmedData = stringData.trim();
+            if (trimmedData.startsWith('{') && trimmedData.endsWith('}')) {
+              dashboardData = JSON.parse(trimmedData) as UserDashboardResponseDto;
+              console.log('[Dashboard] ✅ Successfully parsed JSON string');
+              console.log('[Dashboard] Parsed data:', dashboardData);
+            } else {
+              // JSONが不完全な場合、エラーを投げる
+              console.error('[Dashboard] ❌ JSON string is incomplete (does not start with { or end with })');
+              console.error('[Dashboard] First 100 chars:', trimmedData.substring(0, 100));
+              console.error('[Dashboard] Last 100 chars:', trimmedData.substring(Math.max(0, trimmedData.length - 100)));
+              setError('Response data is incomplete. Please check the proxy API route.');
+              setLoading(false);
+              return;
+            }
+          } catch (parseError) {
+            console.error('[Dashboard] ❌ Failed to parse JSON string:', parseError);
+            console.error('[Dashboard] Error position:', parseError instanceof SyntaxError ? (parseError as any).position : 'unknown');
+            console.error('[Dashboard] String around error position:', 
+              parseError instanceof SyntaxError && (parseError as any).position 
+                ? stringData.substring(Math.max(0, (parseError as any).position - 50), (parseError as any).position + 50)
+                : 'unknown');
+            setError('Failed to parse response data. The response may be incomplete.');
+            setLoading(false);
+            return;
+          }
+        } else {
+          // 既にオブジェクトとしてパースされている場合
+          dashboardData = response.data as UserDashboardResponseDto;
+        }
+        
         console.log('[Dashboard] Response data keys:', dashboardData ? Object.keys(dashboardData) : 'null/undefined');
         
         // レスポンスデータの構造を確認
@@ -47,8 +89,11 @@ export default function HomePage() {
       .catch(error => {
         console.error('========== Error fetching dashboard data ==========');
         console.error('Error object:', error);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
+        console.error('Error response:', error.response);
+        console.error('Error status:', error.response?.status);
+        console.error('Error statusText:', error.response?.statusText);
+        console.error('Response data (raw):', error.response?.data);
+        console.error('Response data (stringified):', JSON.stringify(error.response?.data, null, 2));
         
         // レスポンスデータが文字列の場合、JSONパースを試みる
         let parsedData: any = error.response?.data;

@@ -12,8 +12,6 @@ import { NextRequest, NextResponse } from 'next/server';
 // レスポンスサイズの制限を設定（Amplifyのサーバーレス環境での制限を回避）
 export const runtime = 'nodejs';
 export const maxDuration = 30;
-
-// レスポンスサイズの制限を設定（Next.js App Router用）
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -239,8 +237,10 @@ async function handleRequest(
     response.headers.forEach((value, key) => {
       // CORS関連のヘッダーは除外（Next.jsが自動的に設定するため）
       // content-lengthヘッダーも除外（Next.jsが自動的に設定するため）
+      // transfer-encodingヘッダーも除外（Next.jsが自動的に処理するため）
       if (!key.toLowerCase().startsWith('access-control-') && 
-          key.toLowerCase() !== 'content-length') {
+          key.toLowerCase() !== 'content-length' &&
+          key.toLowerCase() !== 'transfer-encoding') {
         responseHeaders.set(key, value);
       }
     });
@@ -249,9 +249,6 @@ async function handleRequest(
     if (!responseHeaders.has('content-type')) {
       responseHeaders.set('content-type', 'application/json; charset=utf-8');
     }
-    
-    // Transfer-Encodingヘッダーを削除（Next.jsが自動的に処理するため）
-    responseHeaders.delete('transfer-encoding');
     
     // レスポンスサイズを制限しないように設定（parsedDataがある場合はそのサイズを使用）
     // 注意: content-lengthはNextResponse.json()が自動的に設定するため、手動設定は不要
@@ -327,7 +324,7 @@ async function handleRequest(
     console.log('[Proxy] Parsed data type:', typeof parsedData);
     
     if (contentType.includes('application/json') && parsedData !== null) {
-      console.log('[Proxy] ✅ Returning JSON response as stream');
+      console.log('[Proxy] ✅ Returning JSON response');
       console.log('[Proxy] JSON string length:', data.length);
       console.log('[Proxy] JSON string ends with }: ', data.trim().endsWith('}'));
       
@@ -340,30 +337,9 @@ async function handleRequest(
       console.log('[Proxy] Parsed data type:', typeof parsedData);
       console.log('[Proxy] Parsed data keys:', parsedData ? Object.keys(parsedData) : 'null');
       
-      // ストリーミングレスポンスを使用して、Amplifyのサーバーレス環境での制限を回避
-      const stream = new ReadableStream({
-        start(controller) {
-          // JSON文字列をチャンクに分割して送信
-          const chunkSize = 1024; // 1KBずつ送信
-          let offset = 0;
-          
-          const sendChunk = () => {
-            if (offset < data.length) {
-              const chunk = data.slice(offset, offset + chunkSize);
-              controller.enqueue(new TextEncoder().encode(chunk));
-              offset += chunkSize;
-              // 次のチャンクを非同期で送信（メインスレッドをブロックしない）
-              setTimeout(sendChunk, 0);
-            } else {
-              controller.close();
-            }
-          };
-          
-          sendChunk();
-        },
-      });
-      
-      return new Response(stream, {
+      // NextResponse.json()を使用してJSONオブジェクトを返す
+      // Next.jsが適切にレスポンスを処理し、圧縮も自動的に行われる
+      return NextResponse.json(parsedData, {
         status: response.status,
         statusText: response.statusText,
         headers: responseHeaders,
