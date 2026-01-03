@@ -52,4 +52,39 @@ apiClient.interceptors.request.use(async (config) => {
     return config;
 });
 
+// レスポンスインターセプター: 文字列レスポンスを自動的にJSONパースする
+apiClient.interceptors.response.use(
+    (response) => {
+        // レスポンスデータが文字列の場合、JSONパースを試みる
+        if (typeof response.data === 'string') {
+            const contentType = response.headers['content-type'] || '';
+            if (contentType.includes('application/json')) {
+                try {
+                    console.log('[API Client] ⚠️ Response data is string, auto-parsing JSON...');
+                    response.data = JSON.parse(response.data);
+                    console.log('[API Client] ✅ Successfully parsed JSON string');
+                } catch (parseError) {
+                    console.error('[API Client] ❌ Failed to parse JSON string:', parseError);
+                    // パースに失敗した場合はそのまま返す（エラーハンドリングは呼び出し側で行う）
+                }
+            }
+        }
+        return response;
+    },
+    (error) => {
+        // エラーレスポンスでも同様に処理
+        if (error.response && typeof error.response.data === 'string') {
+            const contentType = error.response.headers['content-type'] || '';
+            if (contentType.includes('application/json')) {
+                try {
+                    error.response.data = JSON.parse(error.response.data);
+                } catch (parseError) {
+                    // パースに失敗した場合はそのまま返す
+                }
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 export default apiClient;

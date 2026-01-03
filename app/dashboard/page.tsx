@@ -25,19 +25,46 @@ export default function HomePage() {
         console.log('[Dashboard] Response data type:', typeof response.data);
         
         // レスポンスデータが文字列の場合はJSONパースを試みる
-        let dashboardData = response.data;
+        // Axiosのレスポンスインターセプターで既にパースされている可能性があるため、
+        // 文字列の場合は再度パースを試みる
+        let dashboardData: UserDashboardResponseDto;
+        
         if (typeof response.data === 'string') {
+          const stringData: string = response.data;
           console.log('[Dashboard] ⚠️ Response data is string, attempting to parse...');
+          console.log('[Dashboard] String length:', stringData.length);
+          console.log('[Dashboard] String preview (first 500 chars):', stringData.substring(0, 500));
+          
           try {
-            dashboardData = JSON.parse(response.data);
-            console.log('[Dashboard] ✅ Successfully parsed JSON string');
-            console.log('[Dashboard] Parsed data:', dashboardData);
+            // 不完全なJSONの場合を考慮して、可能な限りパースを試みる
+            const trimmedData = stringData.trim();
+            if (trimmedData.startsWith('{') && trimmedData.endsWith('}')) {
+              dashboardData = JSON.parse(trimmedData) as UserDashboardResponseDto;
+              console.log('[Dashboard] ✅ Successfully parsed JSON string');
+              console.log('[Dashboard] Parsed data:', dashboardData);
+            } else {
+              // JSONが不完全な場合、エラーを投げる
+              console.error('[Dashboard] ❌ JSON string is incomplete (does not start with { or end with })');
+              console.error('[Dashboard] First 100 chars:', trimmedData.substring(0, 100));
+              console.error('[Dashboard] Last 100 chars:', trimmedData.substring(Math.max(0, trimmedData.length - 100)));
+              setError('Response data is incomplete. Please check the proxy API route.');
+              setLoading(false);
+              return;
+            }
           } catch (parseError) {
             console.error('[Dashboard] ❌ Failed to parse JSON string:', parseError);
-            setError('Failed to parse response data');
+            console.error('[Dashboard] Error position:', parseError instanceof SyntaxError ? (parseError as any).position : 'unknown');
+            console.error('[Dashboard] String around error position:', 
+              parseError instanceof SyntaxError && (parseError as any).position 
+                ? stringData.substring(Math.max(0, (parseError as any).position - 50), (parseError as any).position + 50)
+                : 'unknown');
+            setError('Failed to parse response data. The response may be incomplete.');
             setLoading(false);
             return;
           }
+        } else {
+          // 既にオブジェクトとしてパースされている場合
+          dashboardData = response.data as UserDashboardResponseDto;
         }
         
         console.log('[Dashboard] Response data keys:', dashboardData ? Object.keys(dashboardData) : 'null/undefined');

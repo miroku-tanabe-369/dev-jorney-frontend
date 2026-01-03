@@ -172,17 +172,23 @@ async function handleRequest(
     let parsedData: any = null;
     
     if (contentType.includes('application/json')) {
-      // JSONレスポンスの場合、パースしてから文字列に戻す（NextResponse.jsonで使用するため）
+      // JSONレスポンスの場合、パースする
       try {
         parsedData = await response.json();
+        console.log('[Proxy] ✅ Successfully parsed JSON response');
+        console.log('[Proxy] Parsed data keys:', Object.keys(parsedData || {}));
+        // デバッグ用に文字列化（ログ出力用のみ）
         data = JSON.stringify(parsedData);
       } catch (parseError) {
         // JSONパースに失敗した場合はテキストとして扱う
-        console.warn('[Proxy] Failed to parse JSON response, treating as text:', parseError);
+        console.error('[Proxy] ❌ Failed to parse JSON response, treating as text:', parseError);
         data = await response.text();
+        console.error('[Proxy] Raw response data length:', data.length);
+        console.error('[Proxy] Raw response data (first 500 chars):', data.substring(0, 500));
       }
     } else {
       // JSON以外の場合はテキストとして取得
+      console.log('[Proxy] ⚠️ Content-Type is not JSON, treating as text');
       data = await response.text();
     }
     
@@ -228,8 +234,14 @@ async function handleRequest(
       responseHeaders.set('content-type', 'application/json; charset=utf-8');
     }
     
-    // レスポンスサイズを制限しないように設定
-    responseHeaders.set('content-length', data.length.toString());
+    // レスポンスサイズを制限しないように設定（parsedDataがある場合はそのサイズを使用）
+    // 注意: content-lengthはNextResponse.json()が自動的に設定するため、手動設定は不要
+    // ただし、デバッグ用にログ出力
+    if (parsedData !== null) {
+      console.log('[Proxy] Parsed data size:', JSON.stringify(parsedData).length, 'bytes');
+    } else {
+      console.log('[Proxy] Text data size:', data.length, 'bytes');
+    }
 
     // 401エラーの場合、詳細情報をレスポンスに含める（デバッグ用）
     if (response.status === 401) {
