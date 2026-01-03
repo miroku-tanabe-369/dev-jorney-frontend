@@ -193,8 +193,11 @@ async function handleRequest(
 
     // Content-Typeヘッダーを設定（レスポンスに含まれていない場合）
     if (!responseHeaders.has('content-type')) {
-      responseHeaders.set('content-type', 'application/json');
+      responseHeaders.set('content-type', 'application/json; charset=utf-8');
     }
+    
+    // レスポンスサイズを制限しないように設定
+    responseHeaders.set('content-length', data.length.toString());
 
     // 401エラーの場合、詳細情報をレスポンスに含める（デバッグ用）
     if (response.status === 401) {
