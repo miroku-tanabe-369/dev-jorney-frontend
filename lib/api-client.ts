@@ -29,6 +29,11 @@ const getBaseURL = () => {
 // axiosのインスタンスを定義して共通的にURLを使いまわせる
 const apiClient = axios.create({
     baseURL: getBaseURL(),
+    // レスポンスサイズの制限を解除（デフォルトは2000バイト）
+    maxContentLength: Infinity,
+    maxBodyLength: Infinity,
+    // リクエストサイズの制限も解除
+    maxRedirects: 5,
 });
 
 // バックエンドのJWTStrategyに適合させるためのインターセプターを設定

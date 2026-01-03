@@ -327,10 +327,12 @@ async function handleRequest(
       
       console.log('[Proxy] Content-Length header set:', byteLength);
       console.log('[Proxy] Full JSON string:', data);
+      console.log('[Proxy] Parsed data type:', typeof parsedData);
+      console.log('[Proxy] Parsed data keys:', parsedData ? Object.keys(parsedData) : 'null');
       
-      // NextResponseを使用してJSON文字列を返す
-      // content-lengthヘッダーを設定することで、Amplifyでレスポンスが切れないようにする
-      return new NextResponse(data, {
+      // NextResponse.json()を使用してJSONオブジェクトを返す
+      // これにより、Next.jsが適切にレスポンスを処理し、content-lengthヘッダーも正しく設定される
+      return NextResponse.json(parsedData, {
         status: response.status,
         statusText: response.statusText,
         headers: responseHeaders,
@@ -338,6 +340,8 @@ async function handleRequest(
     } else {
       console.log('[Proxy] ⚠️ Returning text response (not JSON or parsedData is null)');
       // JSON以外の場合はテキストとして返す
+      const byteLength = Buffer.byteLength(data, 'utf8');
+      responseHeaders.set('content-length', byteLength.toString());
       return new NextResponse(data, {
         status: response.status,
         statusText: response.statusText,
