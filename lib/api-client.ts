@@ -57,11 +57,53 @@ apiClient.interceptors.request.use(async (config) => {
     return config;
 });
 
-// レスポンスインターセプター: 文字列レスポンスを自動的にJSONパースする
+// レスポンスインターセプター: Base64エンコードされたレスポンスをデコードする
 apiClient.interceptors.response.use(
     (response) => {
-        // レスポンスデータが文字列の場合、JSONパースを試みる
-        if (typeof response.data === 'string') {
+        // Base64エンコードされたレスポンスをチェック
+        const encoding = response.headers['x-response-encoding'];
+        if (encoding === 'base64' && response.data && typeof response.data === 'object' && response.data.encoded) {
+            try {
+                console.log('[API Client] ✅ Detected Base64 encoded response, decoding...');
+                console.log('[API Client] Base64 string length:', response.data.encoded.length);
+                
+                // Base64デコード（ブラウザ環境ではatobを使用）
+                let decodedString: string;
+                if (typeof window !== 'undefined' && typeof window.atob === 'function') {
+                    // ブラウザ環境: atobを使用
+                    decodedString = decodeURIComponent(
+                        Array.from(window.atob(response.data.encoded), (c) => 
+                            '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+                        ).join('')
+                    );
+                } else {
+                    // Node.js環境: Bufferを使用（サーバーサイドレンダリング時）
+                    const Buffer = require('buffer').Buffer;
+                    decodedString = Buffer.from(response.data.encoded, 'base64').toString('utf8');
+                }
+                
+                console.log('[API Client] Decoded string length:', decodedString.length);
+                console.log('[API Client] Decoded string preview (first 300 chars):', decodedString.substring(0, 300));
+                console.log('[API Client] Decoded string preview (last 100 chars):', decodedString.substring(Math.max(0, decodedString.length - 100)));
+                
+                // JSONパース
+                const trimmedData = decodedString.trim();
+                if (trimmedData.startsWith('{') && trimmedData.endsWith('}')) {
+                    response.data = JSON.parse(trimmedData);
+                    console.log('[API Client] ✅ Successfully decoded and parsed Base64 response');
+                    console.log('[API Client] Parsed data keys:', Object.keys(response.data));
+                } else {
+                    console.error('[API Client] ❌ Decoded string is not valid JSON');
+                    console.error('[API Client] First 100 chars:', trimmedData.substring(0, 100));
+                    console.error('[API Client] Last 100 chars:', trimmedData.substring(Math.max(0, trimmedData.length - 100)));
+                    throw new Error('Decoded response data is not valid JSON.');
+                }
+            } catch (decodeError) {
+                console.error('[API Client] ❌ Failed to decode Base64 response:', decodeError);
+                throw decodeError;
+            }
+        } else if (typeof response.data === 'string') {
+            // Base64エンコードされていない通常の文字列レスポンスの場合
             const contentType = response.headers['content-type'] || '';
             if (contentType.includes('application/json')) {
                 try {
@@ -93,16 +135,42 @@ apiClient.interceptors.response.use(
     },
     (error) => {
         // エラーレスポンスでも同様に処理
-        if (error.response && typeof error.response.data === 'string') {
-            const contentType = error.response.headers['content-type'] || '';
-            if (contentType.includes('application/json')) {
+        if (error.response) {
+            const encoding = error.response.headers['x-response-encoding'];
+            if (encoding === 'base64' && error.response.data && typeof error.response.data === 'object' && error.response.data.encoded) {
                 try {
-                    const trimmedData = error.response.data.trim();
+                    let decodedString: string;
+                    if (typeof window !== 'undefined' && typeof window.atob === 'function') {
+                        // ブラウザ環境: atobを使用
+                        decodedString = decodeURIComponent(
+                            Array.from(window.atob(error.response.data.encoded), (c) => 
+                                '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+                            ).join('')
+                        );
+                    } else {
+                        // Node.js環境: Bufferを使用
+                        const Buffer = require('buffer').Buffer;
+                        decodedString = Buffer.from(error.response.data.encoded, 'base64').toString('utf8');
+                    }
+                    const trimmedData = decodedString.trim();
                     if (trimmedData.startsWith('{') && trimmedData.endsWith('}')) {
                         error.response.data = JSON.parse(trimmedData);
                     }
-                } catch (parseError) {
-                    // パースに失敗した場合はそのまま返す
+                } catch (decodeError) {
+                    // デコードに失敗した場合はそのまま返す
+                    console.error('[API Client] ❌ Failed to decode Base64 error response:', decodeError);
+                }
+            } else if (typeof error.response.data === 'string') {
+                const contentType = error.response.headers['content-type'] || '';
+                if (contentType.includes('application/json')) {
+                    try {
+                        const trimmedData = error.response.data.trim();
+                        if (trimmedData.startsWith('{') && trimmedData.endsWith('}')) {
+                            error.response.data = JSON.parse(trimmedData);
+                        }
+                    } catch (parseError) {
+                        // パースに失敗した場合はそのまま返す
+                    }
                 }
             }
         }

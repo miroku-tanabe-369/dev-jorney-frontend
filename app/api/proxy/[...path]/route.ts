@@ -324,27 +324,37 @@ async function handleRequest(
     console.log('[Proxy] Parsed data type:', typeof parsedData);
     
     if (contentType.includes('application/json') && parsedData !== null) {
-      console.log('[Proxy] ✅ Returning JSON response');
+      console.log('[Proxy] ✅ Returning JSON response (Base64 encoded)');
       console.log('[Proxy] JSON string length:', data.length);
       console.log('[Proxy] JSON string ends with }: ', data.trim().endsWith('}'));
       
+      // Base64エンコードしてレスポンスを送信（Amplifyの制限を回避）
+      const base64Encoded = Buffer.from(data, 'utf8').toString('base64');
+      console.log('[Proxy] Base64 encoded length:', base64Encoded.length);
+      console.log('[Proxy] Original data length:', data.length);
+      console.log('[Proxy] Compression ratio:', ((base64Encoded.length / data.length) * 100).toFixed(2) + '%');
+      
       // Content-Typeヘッダーを明示的に設定
       responseHeaders.set('content-type', 'application/json; charset=utf-8');
+      // Base64エンコード方式であることを示すカスタムヘッダーを追加
+      responseHeaders.set('X-Response-Encoding', 'base64');
       
       const byteLength = Buffer.byteLength(data, 'utf8');
-      console.log('[Proxy] Content-Length (calculated):', byteLength);
-      console.log('[Proxy] Full JSON string:', data);
+      console.log('[Proxy] Content-Length (original, calculated):', byteLength);
       console.log('[Proxy] Parsed data type:', typeof parsedData);
       console.log('[Proxy] Parsed data keys:', parsedData ? Object.keys(parsedData) : 'null');
       
-      // Amplifyのサーバーレス環境での制限を回避するため、
-      // Responseオブジェクトを直接使用して、チャンクエンコーディングを強制
+      // Base64エンコードされたデータをJSONオブジェクトとして返す
+      // { "encoded": "base64string" } の形式で返す
+      const encodedResponse = {
+        encoded: base64Encoded
+      };
+      
       // content-lengthヘッダーを削除することで、Transfer-Encoding: chunkedが使用される
       responseHeaders.delete('content-length');
       
       // NextResponse.json()を使用してJSONオブジェクトを返す
-      // Next.jsが適切にレスポンスを処理し、圧縮も自動的に行われる
-      return NextResponse.json(parsedData, {
+      return NextResponse.json(encodedResponse, {
         status: response.status,
         statusText: response.statusText,
         headers: responseHeaders,
