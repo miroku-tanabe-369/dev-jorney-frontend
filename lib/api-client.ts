@@ -57,6 +57,95 @@ apiClient.interceptors.request.use(async (config) => {
     return config;
 });
 
+// ストリーミングレスポンスを処理するヘルパー関数
+async function handleStreamingResponse(response: Response): Promise<any> {
+    const reader = response.body?.getReader();
+    if (!reader) {
+        throw new Error('Response body is not readable');
+    }
+    
+    const decoder = new TextDecoder();
+    let result = '';
+    
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            result += decoder.decode(value, { stream: true });
+        }
+        
+        // ストリームの最後のチャンクをデコード
+        result += decoder.decode();
+        
+        console.log('[API Client] ✅ Streamed response received, length:', result.length);
+        console.log('[API Client] Response preview (first 300 chars):', result.substring(0, 300));
+        console.log('[API Client] Response preview (last 100 chars):', result.substring(Math.max(0, result.length - 100)));
+        
+        // JSONパースを試みる
+        const trimmedData = result.trim();
+        if (trimmedData.startsWith('{') && trimmedData.endsWith('}')) {
+            return JSON.parse(trimmedData);
+        } else {
+            throw new Error('Response data is incomplete. Expected JSON but received incomplete string.');
+        }
+    } finally {
+        reader.releaseLock();
+    }
+}
+
+// ストリーミングレスポンスをサポートするためのカスタムリクエスト関数
+export async function apiRequest<T = any>(url: string, options: {
+    method?: string;
+    data?: any;
+    headers?: Record<string, string>;
+} = {}): Promise<T> {
+    const baseURL = getBaseURL();
+    const fullUrl = baseURL + url;
+    
+    try {
+        const session = await fetchAuthSession();
+        const token = session.tokens?.accessToken?.toString();
+        
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+            ...options.headers,
+        };
+        
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        const fetchOptions: RequestInit = {
+            method: options.method || 'GET',
+            headers: headers,
+        };
+        
+        if (options.data && options.method !== 'GET') {
+            fetchOptions.body = JSON.stringify(options.data);
+        }
+        
+        const response = await fetch(fullUrl, fetchOptions);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // ストリーミングレスポンスを処理
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            const parsedData = await handleStreamingResponse(response);
+            return parsedData as T;
+        } else {
+            const text = await response.text();
+            return text as T;
+        }
+    } catch (error) {
+        console.error('[API Client] ❌ Request failed:', error);
+        throw error;
+    }
+}
+
 // レスポンスインターセプター: 文字列レスポンスを自動的にJSONパースする
 apiClient.interceptors.response.use(
     (response) => {

@@ -238,7 +238,9 @@ async function handleRequest(
     const responseHeaders = new Headers();
     response.headers.forEach((value, key) => {
       // CORS関連のヘッダーは除外（Next.jsが自動的に設定するため）
-      if (!key.toLowerCase().startsWith('access-control-')) {
+      // content-lengthヘッダーも除外（Next.jsが自動的に設定するため）
+      if (!key.toLowerCase().startsWith('access-control-') && 
+          key.toLowerCase() !== 'content-length') {
         responseHeaders.set(key, value);
       }
     });
@@ -247,6 +249,9 @@ async function handleRequest(
     if (!responseHeaders.has('content-type')) {
       responseHeaders.set('content-type', 'application/json; charset=utf-8');
     }
+    
+    // Transfer-Encodingヘッダーを削除（Next.jsが自動的に処理するため）
+    responseHeaders.delete('transfer-encoding');
     
     // レスポンスサイズを制限しないように設定（parsedDataがある場合はそのサイズを使用）
     // 注意: content-lengthはNextResponse.json()が自動的に設定するため、手動設定は不要
@@ -322,47 +327,54 @@ async function handleRequest(
     console.log('[Proxy] Parsed data type:', typeof parsedData);
     
     if (contentType.includes('application/json') && parsedData !== null) {
-      console.log('[Proxy] ✅ Returning JSON response');
+      console.log('[Proxy] ✅ Returning JSON response as stream');
       console.log('[Proxy] JSON string length:', data.length);
       console.log('[Proxy] JSON string ends with }: ', data.trim().endsWith('}'));
       
       // Content-Typeヘッダーを明示的に設定
       responseHeaders.set('content-type', 'application/json; charset=utf-8');
       
-      // content-lengthヘッダーを明示的に設定（重要：Amplifyでレスポンスが切れないようにする）
       const byteLength = Buffer.byteLength(data, 'utf8');
-      responseHeaders.set('content-length', byteLength.toString());
-      
-      console.log('[Proxy] Content-Length header set:', byteLength);
+      console.log('[Proxy] Content-Length (calculated):', byteLength);
       console.log('[Proxy] Full JSON string:', data);
       console.log('[Proxy] Parsed data type:', typeof parsedData);
       console.log('[Proxy] Parsed data keys:', parsedData ? Object.keys(parsedData) : 'null');
       
-      // Responseオブジェクトを直接使用して、完全なレスポンスを返す
-      // Amplifyのサーバーレス環境でNextResponseが正しく動作しない場合があるため
-      const headersObj: Record<string, string> = {};
-      responseHeaders.forEach((value, key) => {
-        headersObj[key] = value;
+      // ストリーミングレスポンスを使用して、Amplifyのサーバーレス環境での制限を回避
+      const stream = new ReadableStream({
+        start(controller) {
+          // JSON文字列をチャンクに分割して送信
+          const chunkSize = 1024; // 1KBずつ送信
+          let offset = 0;
+          
+          const sendChunk = () => {
+            if (offset < data.length) {
+              const chunk = data.slice(offset, offset + chunkSize);
+              controller.enqueue(new TextEncoder().encode(chunk));
+              offset += chunkSize;
+              // 次のチャンクを非同期で送信（メインスレッドをブロックしない）
+              setTimeout(sendChunk, 0);
+            } else {
+              controller.close();
+            }
+          };
+          
+          sendChunk();
+        },
       });
       
-      return new Response(data, {
+      return new Response(stream, {
         status: response.status,
         statusText: response.statusText,
-        headers: headersObj,
+        headers: responseHeaders,
       });
     } else {
       console.log('[Proxy] ⚠️ Returning text response (not JSON or parsedData is null)');
       // JSON以外の場合はテキストとして返す
-      const byteLength = Buffer.byteLength(data, 'utf8');
-      responseHeaders.set('content-length', byteLength.toString());
-      const headersObj: Record<string, string> = {};
-      responseHeaders.forEach((value, key) => {
-        headersObj[key] = value;
-      });
-      return new Response(data, {
+      return new NextResponse(data, {
         status: response.status,
         statusText: response.statusText,
-        headers: headersObj,
+        headers: responseHeaders,
       });
     }
   } catch (error) {
