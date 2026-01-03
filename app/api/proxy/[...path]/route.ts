@@ -302,16 +302,19 @@ async function handleRequest(
     }
 
     // クライアントにレスポンスを返す
-    // JSONレスポンスの場合は、パース済みデータをNextResponse.jsonで返す
+    // JSONレスポンスの場合は、パース済みデータをJSON文字列として返す
     console.log('[Proxy] Content-Type:', contentType);
     console.log('[Proxy] Parsed data exists:', parsedData !== null);
     console.log('[Proxy] Parsed data type:', typeof parsedData);
     
     if (contentType.includes('application/json') && parsedData !== null) {
-      console.log('[Proxy] ✅ Returning JSON response with NextResponse.json');
+      console.log('[Proxy] ✅ Returning JSON response as string');
+      console.log('[Proxy] JSON string length:', data.length);
       // Content-Typeヘッダーを明示的に設定
       responseHeaders.set('content-type', 'application/json; charset=utf-8');
-      return NextResponse.json(parsedData, {
+      // NextResponse.json()の代わりに、明示的にJSON文字列を返す
+      // Amplifyのサーバーレス環境でNextResponse.json()が正しく動作しない場合があるため
+      return new NextResponse(data, {
         status: response.status,
         statusText: response.statusText,
         headers: responseHeaders,
