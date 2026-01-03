@@ -23,25 +23,42 @@ export default function HomePage() {
         console.log('[Dashboard] API response received:', response);
         console.log('[Dashboard] Response data:', response.data);
         console.log('[Dashboard] Response data type:', typeof response.data);
-        console.log('[Dashboard] Response data keys:', response.data ? Object.keys(response.data) : 'null/undefined');
+        
+        // レスポンスデータが文字列の場合はJSONパースを試みる
+        let dashboardData = response.data;
+        if (typeof response.data === 'string') {
+          console.log('[Dashboard] ⚠️ Response data is string, attempting to parse...');
+          try {
+            dashboardData = JSON.parse(response.data);
+            console.log('[Dashboard] ✅ Successfully parsed JSON string');
+            console.log('[Dashboard] Parsed data:', dashboardData);
+          } catch (parseError) {
+            console.error('[Dashboard] ❌ Failed to parse JSON string:', parseError);
+            setError('Failed to parse response data');
+            setLoading(false);
+            return;
+          }
+        }
+        
+        console.log('[Dashboard] Response data keys:', dashboardData ? Object.keys(dashboardData) : 'null/undefined');
         
         // レスポンスデータの構造を確認
-        if (!response.data) {
+        if (!dashboardData) {
           console.error('[Dashboard] ❌ Response data is null or undefined');
           setError('Invalid response data: data is null or undefined');
           setLoading(false);
           return;
         }
         
-        if (!response.data.userInfo) {
+        if (!dashboardData.userInfo) {
           console.error('[Dashboard] ❌ Response data.userInfo is missing');
-          console.error('[Dashboard] Full response data:', JSON.stringify(response.data, null, 2));
+          console.error('[Dashboard] Full response data:', JSON.stringify(dashboardData, null, 2));
           setError('Invalid response data: userInfo is missing');
           setLoading(false);
           return;
         }
         
-        setDashboardData(response.data);
+        setDashboardData(dashboardData);
         setLoading(false);
       })
       .catch(error => {

@@ -291,13 +291,21 @@ async function handleRequest(
 
     // クライアントにレスポンスを返す
     // JSONレスポンスの場合は、パース済みデータをNextResponse.jsonで返す
+    console.log('[Proxy] Content-Type:', contentType);
+    console.log('[Proxy] Parsed data exists:', parsedData !== null);
+    console.log('[Proxy] Parsed data type:', typeof parsedData);
+    
     if (contentType.includes('application/json') && parsedData !== null) {
+      console.log('[Proxy] ✅ Returning JSON response with NextResponse.json');
+      // Content-Typeヘッダーを明示的に設定
+      responseHeaders.set('content-type', 'application/json; charset=utf-8');
       return NextResponse.json(parsedData, {
         status: response.status,
         statusText: response.statusText,
         headers: responseHeaders,
       });
     } else {
+      console.log('[Proxy] ⚠️ Returning text response (not JSON or parsedData is null)');
       // JSON以外の場合はテキストとして返す
       return new NextResponse(data, {
         status: response.status,
