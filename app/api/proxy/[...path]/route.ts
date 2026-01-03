@@ -337,6 +337,11 @@ async function handleRequest(
       console.log('[Proxy] Parsed data type:', typeof parsedData);
       console.log('[Proxy] Parsed data keys:', parsedData ? Object.keys(parsedData) : 'null');
       
+      // Amplifyのサーバーレス環境での制限を回避するため、
+      // Responseオブジェクトを直接使用して、チャンクエンコーディングを強制
+      // content-lengthヘッダーを削除することで、Transfer-Encoding: chunkedが使用される
+      responseHeaders.delete('content-length');
+      
       // NextResponse.json()を使用してJSONオブジェクトを返す
       // Next.jsが適切にレスポンスを処理し、圧縮も自動的に行われる
       return NextResponse.json(parsedData, {
@@ -347,6 +352,8 @@ async function handleRequest(
     } else {
       console.log('[Proxy] ⚠️ Returning text response (not JSON or parsedData is null)');
       // JSON以外の場合はテキストとして返す
+      // content-lengthヘッダーを削除することで、Transfer-Encoding: chunkedが使用される
+      responseHeaders.delete('content-length');
       return new NextResponse(data, {
         status: response.status,
         statusText: response.statusText,
