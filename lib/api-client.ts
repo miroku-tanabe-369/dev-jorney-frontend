@@ -61,11 +61,26 @@ apiClient.interceptors.response.use(
             if (contentType.includes('application/json')) {
                 try {
                     console.log('[API Client] ⚠️ Response data is string, auto-parsing JSON...');
-                    response.data = JSON.parse(response.data);
-                    console.log('[API Client] ✅ Successfully parsed JSON string');
+                    console.log('[API Client] String length:', response.data.length);
+                    console.log('[API Client] String preview (first 300 chars):', response.data.substring(0, 300));
+                    console.log('[API Client] String preview (last 100 chars):', response.data.substring(Math.max(0, response.data.length - 100)));
+                    
+                    // 不完全なJSONの場合を考慮して、可能な限りパースを試みる
+                    const trimmedData = response.data.trim();
+                    if (trimmedData.startsWith('{') && trimmedData.endsWith('}')) {
+                        response.data = JSON.parse(trimmedData);
+                        console.log('[API Client] ✅ Successfully parsed JSON string');
+                    } else {
+                        console.error('[API Client] ❌ JSON string is incomplete (does not start with { or end with })');
+                        console.error('[API Client] First 100 chars:', trimmedData.substring(0, 100));
+                        console.error('[API Client] Last 100 chars:', trimmedData.substring(Math.max(0, trimmedData.length - 100)));
+                        // 不完全なJSONの場合は、エラーを投げる
+                        throw new Error('Response data is incomplete. Expected JSON but received incomplete string.');
+                    }
                 } catch (parseError) {
                     console.error('[API Client] ❌ Failed to parse JSON string:', parseError);
-                    // パースに失敗した場合はそのまま返す（エラーハンドリングは呼び出し側で行う）
+                    // パースに失敗した場合はエラーを投げる（呼び出し側でエラーハンドリング）
+                    throw parseError;
                 }
             }
         }
@@ -77,7 +92,10 @@ apiClient.interceptors.response.use(
             const contentType = error.response.headers['content-type'] || '';
             if (contentType.includes('application/json')) {
                 try {
-                    error.response.data = JSON.parse(error.response.data);
+                    const trimmedData = error.response.data.trim();
+                    if (trimmedData.startsWith('{') && trimmedData.endsWith('}')) {
+                        error.response.data = JSON.parse(trimmedData);
+                    }
                 } catch (parseError) {
                     // パースに失敗した場合はそのまま返す
                 }
