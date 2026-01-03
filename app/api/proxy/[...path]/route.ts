@@ -198,6 +198,12 @@ async function handleRequest(
     console.log('[Proxy] Response status text:', response.statusText);
     console.log('[Proxy] Response data length:', data.length);
     console.log('[Proxy] Response data (first 200 chars):', data.substring(0, 200));
+    console.log('[Proxy] Response data (last 200 chars):', data.substring(Math.max(0, data.length - 200)));
+    console.log('[Proxy] Response data ends with }: ', data.trim().endsWith('}'));
+    if (parsedData) {
+      console.log('[Proxy] Parsed data JSON string length:', JSON.stringify(parsedData).length);
+      console.log('[Proxy] Parsed data JSON string (last 200 chars):', JSON.stringify(parsedData).substring(Math.max(0, JSON.stringify(parsedData).length - 200)));
+    }
     
     if (response.status === 401) {
       console.error('[Proxy] ❌ 401 Unauthorized Error');
@@ -308,16 +314,26 @@ async function handleRequest(
     console.log('[Proxy] Parsed data type:', typeof parsedData);
     
     if (contentType.includes('application/json') && parsedData !== null) {
-      console.log('[Proxy] ✅ Returning JSON response as string');
+      console.log('[Proxy] ✅ Returning JSON response');
       console.log('[Proxy] JSON string length:', data.length);
+      console.log('[Proxy] JSON string ends with }: ', data.trim().endsWith('}'));
+      
       // Content-Typeヘッダーを明示的に設定
       responseHeaders.set('content-type', 'application/json; charset=utf-8');
-      // NextResponse.json()の代わりに、明示的にJSON文字列を返す
-      // Amplifyのサーバーレス環境でNextResponse.json()が正しく動作しない場合があるため
-      return new NextResponse(data, {
+      
+      // content-lengthヘッダーを明示的に設定（重要：Amplifyでレスポンスが切れないようにする）
+      const byteLength = Buffer.byteLength(data, 'utf8');
+      responseHeaders.set('content-length', byteLength.toString());
+      
+      console.log('[Proxy] Content-Length header set:', byteLength);
+      console.log('[Proxy] Full JSON string:', data);
+      
+      // Responseオブジェクトを直接返す（NextResponseの代わり）
+      // Amplifyのサーバーレス環境でNextResponseが正しく動作しない場合があるため
+      return new Response(data, {
         status: response.status,
         statusText: response.statusText,
-        headers: responseHeaders,
+        headers: Object.fromEntries(responseHeaders.entries()),
       });
     } else {
       console.log('[Proxy] ⚠️ Returning text response (not JSON or parsedData is null)');
