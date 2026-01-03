@@ -12,33 +12,37 @@ import { NextRequest, NextResponse } from 'next/server';
 // GETリクエストの処理
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  return handleRequest(request, params, 'GET');
+  const resolvedParams = await params;
+  return handleRequest(request, resolvedParams, 'GET');
 }
 
 // POSTリクエストの処理
 export async function POST(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  return handleRequest(request, params, 'POST');
+  const resolvedParams = await params;
+  return handleRequest(request, resolvedParams, 'POST');
 }
 
 // PUTリクエストの処理
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  return handleRequest(request, params, 'PUT');
+  const resolvedParams = await params;
+  return handleRequest(request, resolvedParams, 'PUT');
 }
 
 // DELETEリクエストの処理
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  return handleRequest(request, params, 'DELETE');
+  const resolvedParams = await params;
+  return handleRequest(request, resolvedParams, 'DELETE');
 }
 
 /**
