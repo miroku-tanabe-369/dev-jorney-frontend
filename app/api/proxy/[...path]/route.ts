@@ -9,9 +9,8 @@ import { NextRequest, NextResponse } from 'next/server';
  * クライアントから送信されたAuthorizationヘッダーを使用します。
  */
 
-// レスポンスサイズの制限を設定（Amplifyのサーバーレス環境での制限を回避）
-export const runtime = 'nodejs';
-export const maxDuration = 30;
+// Edge Runtimeを使用（Amplifyのサーバーレス環境での制限を回避）
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -328,8 +327,33 @@ async function handleRequest(
       console.log('[Proxy] JSON string length:', data.length);
       console.log('[Proxy] JSON string ends with }: ', data.trim().endsWith('}'));
       
-      // Base64エンコードしてレスポンスを送信（Amplifyの制限を回避）
-      const base64Encoded = Buffer.from(data, 'utf8').toString('base64');
+      // Edge Runtime用: TextEncoderとbtoaを使用してBase64エンコード
+      // TextEncoderを使用してUint8Arrayに変換し、btoaでBase64化
+      const encoder = new TextEncoder();
+      const uint8Array = encoder.encode(data);
+      
+      // 大きな配列の場合、チャンクに分割して処理
+      let base64Encoded: string;
+      if (uint8Array.length > 65536) {
+        // 65536バイト（64KB）を超える場合はチャンクに分割
+        const chunks: string[] = [];
+        const chunkSize = 65536;
+        for (let i = 0; i < uint8Array.length; i += chunkSize) {
+          const chunk = uint8Array.slice(i, i + chunkSize);
+          // Array.from()を使用してUint8Arrayを配列に変換
+          const chunkArray = Array.from(chunk);
+          const chunkString = String.fromCharCode(...chunkArray);
+          chunks.push(btoa(chunkString));
+        }
+        base64Encoded = chunks.join('');
+      } else {
+        // 小さい場合は一度に処理
+        // Array.from()を使用してUint8Arrayを配列に変換
+        const uint8ArrayAsArray = Array.from(uint8Array);
+        const stringFromCharCode = String.fromCharCode(...uint8ArrayAsArray);
+        base64Encoded = btoa(stringFromCharCode);
+      }
+      
       console.log('[Proxy] Base64 encoded length:', base64Encoded.length);
       console.log('[Proxy] Original data length:', data.length);
       console.log('[Proxy] Compression ratio:', ((base64Encoded.length / data.length) * 100).toFixed(2) + '%');
@@ -339,7 +363,7 @@ async function handleRequest(
       // Base64エンコード方式であることを示すカスタムヘッダーを追加
       responseHeaders.set('X-Response-Encoding', 'base64');
       
-      const byteLength = Buffer.byteLength(data, 'utf8');
+      const byteLength = uint8Array.length;
       console.log('[Proxy] Content-Length (original, calculated):', byteLength);
       console.log('[Proxy] Parsed data type:', typeof parsedData);
       console.log('[Proxy] Parsed data keys:', parsedData ? Object.keys(parsedData) : 'null');
@@ -353,8 +377,8 @@ async function handleRequest(
       // content-lengthヘッダーを削除することで、Transfer-Encoding: chunkedが使用される
       responseHeaders.delete('content-length');
       
-      // NextResponse.json()を使用してJSONオブジェクトを返す
-      return NextResponse.json(encodedResponse, {
+      // Edge Runtimeでは標準のResponseオブジェクトを使用
+      return new Response(JSON.stringify(encodedResponse), {
         status: response.status,
         statusText: response.statusText,
         headers: responseHeaders,
