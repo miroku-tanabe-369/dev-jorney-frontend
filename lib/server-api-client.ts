@@ -32,11 +32,19 @@ export async function serverApiRequest<T = any>(
   } = {}
 ): Promise<T> {
   const apiBaseUrl = getApiBaseUrl();
-  const url = `${apiBaseUrl}/${endpoint}`;
+  
+  // ベースURLの末尾のスラッシュを削除
+  const baseUrl = apiBaseUrl.replace(/\/+$/, '');
+  // エンドポイントの先頭のスラッシュを削除
+  const cleanEndpoint = endpoint.replace(/^\/+/, '');
+  // URLを正しく結合
+  const url = `${baseUrl}/${cleanEndpoint}`;
   
   console.log('[Server API Client] ========================================');
   console.log('[Server API Client] Making API request (bypassing proxy)');
-  console.log('[Server API Client] URL:', url);
+  console.log('[Server API Client] Base URL:', baseUrl);
+  console.log('[Server API Client] Endpoint:', cleanEndpoint);
+  console.log('[Server API Client] Full URL:', url);
   console.log('[Server API Client] Method:', options.method || 'GET');
   console.log('[Server API Client] Token provided:', !!options.token);
   console.log('[Server API Client] Token length:', options.token?.length || 0);
