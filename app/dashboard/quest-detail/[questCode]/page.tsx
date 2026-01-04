@@ -21,7 +21,7 @@ export default function QuestDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({})
-  const [isCompleting, setIsCompleting] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
 
   // チェックリストの完了状態を計算
   const checklistItems = parseJsonbToArray(questDetailData?.checklistItems);
@@ -31,7 +31,19 @@ export default function QuestDetailPage() {
 
   // ボタンの活性状態を判定する関数
   const getButtonEnabled = (): boolean => {
+    // 処理中の場合は非活性
+    if (isProcessing) {
+      return false;
+    }
+
     const statusCode = questDetailData?.statusCode;
+    
+    console.log('[Quest Detail] Button enabled check:', {
+      statusCode,
+      allChecked,
+      totalItems,
+      completedItems,
+    });
     
     // 未着手の場合: 常に活性
     if (statusCode === 'NOT_STARTED' || !statusCode) {
@@ -55,14 +67,23 @@ export default function QuestDetailPage() {
   const getButtonText = (): string => {
     const statusCode = questDetailData?.statusCode;
     
-    if (isCompleting) {
-      return 'Completing...';
+    console.log('[Quest Detail] Button text check:', {
+      statusCode,
+      isProcessing,
+      allChecked,
+    });
+    
+    // 処理中の場合は処理中メッセージを表示
+    if (isProcessing) {
+      return 'Processing...';
     }
     
+    // 完了済みの場合
     if (statusCode === 'COMPLETED') {
       return 'Quest Completed';
     }
     
+    // 進行中の場合
     if (statusCode === 'IN_PROGRESS') {
       if (allChecked) {
         return 'Quest Complete';
@@ -84,6 +105,11 @@ export default function QuestDetailPage() {
       const response = await apiClient.get<QuestDetailResponseDto>(
         `quest-detail/${questCode}`
       );
+      console.log('[Quest Detail] Fetched quest data:', {
+        questCode: response.data.questCode,
+        statusCode: response.data.statusCode,
+        progress: response.data.progress,
+      });
       setQuestDetailData(response.data);
       return response.data;
     } catch (error) {
@@ -118,7 +144,8 @@ export default function QuestDetailPage() {
 
   // クエスト開始処理（未着手 → 進行中）
   const handleStartQuest = async () => {
-    setIsCompleting(true);
+    console.log('[Quest Detail] Starting quest:', questCode);
+    setIsProcessing(true);
     setError(null);
     
     try {
@@ -127,19 +154,22 @@ export default function QuestDetailPage() {
         `quest-detail/start-quest/${questCode}`
       );
       
+      console.log('[Quest Detail] Quest started successfully');
+      
       // 成功後、データを再取得して最新の状態を反映
       await fetchQuestDetail();
     } catch (error) {
-      console.error('Error starting quest:', error);
+      console.error('[Quest Detail] Error starting quest:', error);
       setError('Failed to start quest. Please try again.');
     } finally {
-      setIsCompleting(false);
+      setIsProcessing(false);
     }
   };
 
   // クエスト完了処理（進行中 → 完了）
   const handleCompleteQuest = async () => {
-    setIsCompleting(true);
+    console.log('[Quest Detail] Completing quest:', questCode);
+    setIsProcessing(true);
     setError(null);
     
     try {
@@ -148,13 +178,15 @@ export default function QuestDetailPage() {
         `quest-detail/update-quest-progress/${questCode}`
       );
       
+      console.log('[Quest Detail] Quest completed successfully');
+      
       // 成功後、データを再取得して最新の状態を反映
       await fetchQuestDetail();
     } catch (error) {
-      console.error('Error completing quest:', error);
+      console.error('[Quest Detail] Error completing quest:', error);
       setError('Failed to complete quest. Please try again.');
     } finally {
-      setIsCompleting(false);
+      setIsProcessing(false);
     }
   };
 
@@ -162,12 +194,25 @@ export default function QuestDetailPage() {
   const handleButtonClick = async () => {
     const statusCode = questDetailData?.statusCode;
     
+    console.log('[Quest Detail] Button clicked:', {
+      statusCode,
+      allChecked,
+      buttonEnabled,
+    });
+    
     if (statusCode === 'NOT_STARTED' || !statusCode) {
       // 未着手 → 進行中
+      console.log('[Quest Detail] Starting quest...');
       await handleStartQuest();
     } else if (statusCode === 'IN_PROGRESS' && allChecked) {
       // 進行中 + チェックリスト完了 → 完了
+      console.log('[Quest Detail] Completing quest...');
       await handleCompleteQuest();
+    } else {
+      console.warn('[Quest Detail] Button clicked but action not available:', {
+        statusCode,
+        allChecked,
+      });
     }
   };
 
@@ -280,12 +325,22 @@ export default function QuestDetailPage() {
                 <Button 
                   className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90" 
                   size="lg"
-                  disabled={!buttonEnabled || isCompleting}
+                  disabled={!buttonEnabled}
                   onClick={handleButtonClick}
                 >
                   {buttonText}
                 </Button>
               </div>
+              {/* Debug Info (開発用 - 本番では削除) */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-2 rounded bg-muted p-2 text-xs">
+                  <div>Status: {questDetailData?.statusCode || 'N/A'}</div>
+                  <div>Button Enabled: {buttonEnabled ? 'Yes' : 'No'}</div>
+                  <div>Button Text: {buttonText}</div>
+                  <div>All Checked: {allChecked ? 'Yes' : 'No'}</div>
+                  <div>Processing: {isProcessing ? 'Yes' : 'No'}</div>
+                </div>
+              )}
             </div>
 
             {/* Right Column - Progress Panel */}
