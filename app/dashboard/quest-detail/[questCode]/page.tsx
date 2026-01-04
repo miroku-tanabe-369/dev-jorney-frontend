@@ -175,7 +175,7 @@ export default function QuestDetailPage() {
     try {
       // クエスト更新APIを呼び出し
       await apiClient.put(
-        `quest-detail/update-quest-progress/${questCode}`
+        `quest-detail/complete-quest/${questCode}`
       );
       
       console.log('[Quest Detail] Quest completed successfully');
