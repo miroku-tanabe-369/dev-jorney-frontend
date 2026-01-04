@@ -38,13 +38,6 @@ export default function QuestDetailPage() {
 
     const statusCode = questDetailData?.statusCode;
     
-    console.log('[Quest Detail] Button enabled check:', {
-      statusCode,
-      allChecked,
-      totalItems,
-      completedItems,
-    });
-    
     // 未着手の場合: 常に活性
     if (statusCode === 'NOT_STARTED' || !statusCode) {
       return true;
@@ -66,12 +59,6 @@ export default function QuestDetailPage() {
   // ボタンの表示テキストを取得
   const getButtonText = (): string => {
     const statusCode = questDetailData?.statusCode;
-    
-    console.log('[Quest Detail] Button text check:', {
-      statusCode,
-      isProcessing,
-      allChecked,
-    });
     
     // 処理中の場合は処理中メッセージを表示
     if (isProcessing) {
@@ -105,15 +92,9 @@ export default function QuestDetailPage() {
       const response = await apiClient.get<QuestDetailResponseDto>(
         `quest-detail/${questCode}`
       );
-      console.log('[Quest Detail] Fetched quest data:', {
-        questCode: response.data.questCode,
-        statusCode: response.data.statusCode,
-        progress: response.data.progress,
-      });
       setQuestDetailData(response.data);
       return response.data;
     } catch (error) {
-      console.error('Error fetching quest detail data:', error);
       setError('Failed to load quest detail data');
       throw error;
     }
@@ -144,7 +125,6 @@ export default function QuestDetailPage() {
 
   // クエスト開始処理（未着手 → 進行中）
   const handleStartQuest = async () => {
-    console.log('[Quest Detail] Starting quest:', questCode);
     setIsProcessing(true);
     setError(null);
     
@@ -154,12 +134,9 @@ export default function QuestDetailPage() {
         `quest-detail/start-quest/${questCode}`
       );
       
-      console.log('[Quest Detail] Quest started successfully');
-      
       // 成功後、データを再取得して最新の状態を反映
       await fetchQuestDetail();
     } catch (error) {
-      console.error('[Quest Detail] Error starting quest:', error);
       setError('Failed to start quest. Please try again.');
     } finally {
       setIsProcessing(false);
@@ -168,7 +145,6 @@ export default function QuestDetailPage() {
 
   // クエスト完了処理（進行中 → 完了）
   const handleCompleteQuest = async () => {
-    console.log('[Quest Detail] Completing quest:', questCode);
     setIsProcessing(true);
     setError(null);
     
@@ -178,12 +154,9 @@ export default function QuestDetailPage() {
         `quest-detail/complete-quest/${questCode}`
       );
       
-      console.log('[Quest Detail] Quest completed successfully');
-      
       // 成功後、データを再取得して最新の状態を反映
       await fetchQuestDetail();
     } catch (error) {
-      console.error('[Quest Detail] Error completing quest:', error);
       setError('Failed to complete quest. Please try again.');
     } finally {
       setIsProcessing(false);
@@ -194,25 +167,12 @@ export default function QuestDetailPage() {
   const handleButtonClick = async () => {
     const statusCode = questDetailData?.statusCode;
     
-    console.log('[Quest Detail] Button clicked:', {
-      statusCode,
-      allChecked,
-      buttonEnabled,
-    });
-    
     if (statusCode === 'NOT_STARTED' || !statusCode) {
       // 未着手 → 進行中
-      console.log('[Quest Detail] Starting quest...');
       await handleStartQuest();
     } else if (statusCode === 'IN_PROGRESS' && allChecked) {
       // 進行中 + チェックリスト完了 → 完了
-      console.log('[Quest Detail] Completing quest...');
       await handleCompleteQuest();
-    } else {
-      console.warn('[Quest Detail] Button clicked but action not available:', {
-        statusCode,
-        allChecked,
-      });
     }
   };
 
@@ -331,16 +291,6 @@ export default function QuestDetailPage() {
                   {buttonText}
                 </Button>
               </div>
-              {/* Debug Info (開発用 - 本番では削除) */}
-              {process.env.NODE_ENV === 'development' && (
-                <div className="mt-2 rounded bg-muted p-2 text-xs">
-                  <div>Status: {questDetailData?.statusCode || 'N/A'}</div>
-                  <div>Button Enabled: {buttonEnabled ? 'Yes' : 'No'}</div>
-                  <div>Button Text: {buttonText}</div>
-                  <div>All Checked: {allChecked ? 'Yes' : 'No'}</div>
-                  <div>Processing: {isProcessing ? 'Yes' : 'No'}</div>
-                </div>
-              )}
             </div>
 
             {/* Right Column - Progress Panel */}

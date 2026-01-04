@@ -49,7 +49,6 @@ export default function ProfilePage() {
       setIconPreview(response.data.userDetail.icon || null)
       setLoading(false)
     } catch (error) {
-      console.error('Error fetching user profile data:', error)
       setError('Failed to load user profile data')
       setLoading(false)
     }
@@ -125,7 +124,6 @@ export default function ProfilePage() {
       await fetchUserProfile()
       setIsEditingUserCard(false)
     } catch (error) {
-      console.error('Error updating user profile:', error)
       setError('Failed to update profile. Please try again.')
     }
   }
@@ -167,7 +165,6 @@ export default function ProfilePage() {
       await fetchUserProfile()
       setIsEditingBasicInfo(false)
     } catch (error) {
-      console.error('Error updating user profile:', error)
       setError('Failed to update profile. Please try again.')
     }
   }

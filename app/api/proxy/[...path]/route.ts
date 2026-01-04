@@ -19,13 +19,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
-  console.log('[Proxy] GET request received');
   try {
     const resolvedParams = await params;
-    console.log('[Proxy] Params resolved:', resolvedParams);
     return handleRequest(request, resolvedParams, 'GET');
   } catch (error) {
-    console.error('[Proxy] Error in GET handler:', error);
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
@@ -74,7 +71,6 @@ async function handleRequest(
   
   // 環境変数が設定されていない、またはHTTPでない場合はエラー
   if (!apiBaseUrl || !apiBaseUrl.startsWith('http://')) {
-    console.error('API base URL not configured or not HTTP:', apiBaseUrl);
     return NextResponse.json(
       { error: 'API base URL not configured or not HTTP' },
       { status: 500 }
@@ -99,12 +95,6 @@ async function handleRequest(
     // Next.jsのheadersは大文字小文字を区別しないため、小文字で取得
     let authorization = request.headers.get('authorization');
     
-    // すべてのヘッダーをログ出力（デバッグ用）
-    const allHeaders = Array.from(request.headers.entries());
-    console.log('[Proxy] ========================================');
-    console.log('[Proxy] All incoming headers:', allHeaders.map(([k, v]) => [k, k.toLowerCase() === 'authorization' ? v.substring(0, 30) + '...' : v]));
-    console.log('[Proxy] Header count:', allHeaders.length);
-    
     // Authorizationヘッダーを複数の方法で取得を試みる
     if (!authorization) {
       // 大文字小文字を変えて試す
@@ -114,16 +104,6 @@ async function handleRequest(
     
     if (authorization) {
       headers['Authorization'] = authorization;
-      // デバッグ用ログ（本番環境では削除可能）
-      console.log('[Proxy] ✅ Authorization header found');
-      console.log('[Proxy] Authorization header length:', authorization.length);
-      console.log('[Proxy] Authorization header prefix:', authorization.substring(0, 30) + '...');
-      console.log('[Proxy] Is Bearer token?', authorization.startsWith('Bearer '));
-    } else {
-      console.warn('[Proxy] ❌ Authorization header not found in request');
-      console.warn('[Proxy] This will cause 401 Unauthorized error');
-      // すべてのヘッダー名を出力
-      console.log('[Proxy] Header names:', allHeaders.map(([k]) => k));
     }
     
     // その他のヘッダーをコピー
@@ -146,22 +126,9 @@ async function handleRequest(
       try {
         body = await request.text();
       } catch (error) {
-        console.error('Error reading request body:', error);
         body = undefined;
       }
     }
-
-    // デバッグ用ログ（本番環境では削除可能）
-    console.log('[Proxy] ========================================');
-    console.log('[Proxy] Request method:', method);
-    console.log('[Proxy] Request path:', path);
-    console.log('[Proxy] Forwarding request to:', url.toString());
-    console.log('[Proxy] Request headers keys:', Object.keys(headers));
-    console.log('[Proxy] Authorization in headers?', !!headers['Authorization']);
-    if (headers['Authorization']) {
-      console.log('[Proxy] Authorization value (first 30 chars):', headers['Authorization'].substring(0, 30) + '...');
-    }
-    console.log('[Proxy] ========================================');
     
     // バックエンドAPIにリクエストを送信
     const response = await fetch(url.toString(), {
@@ -180,56 +147,15 @@ async function handleRequest(
       // JSONレスポンスの場合、パースする
       try {
         parsedData = await response.json();
-        console.log('[Proxy] ✅ Successfully parsed JSON response');
-        console.log('[Proxy] Parsed data keys:', Object.keys(parsedData || {}));
-        // デバッグ用に文字列化（ログ出力用のみ）
         data = JSON.stringify(parsedData);
       } catch (parseError) {
         // JSONパースに失敗した場合はテキストとして扱う
-        console.error('[Proxy] ❌ Failed to parse JSON response, treating as text:', parseError);
         data = await response.text();
-        console.error('[Proxy] Raw response data length:', data.length);
-        console.error('[Proxy] Raw response data (first 500 chars):', data.substring(0, 500));
       }
     } else {
       // JSON以外の場合はテキストとして取得
-      console.log('[Proxy] ⚠️ Content-Type is not JSON, treating as text');
       data = await response.text();
     }
-    
-    // デバッグ用ログ（詳細版）
-    console.log('[Proxy] ========================================');
-    console.log('[Proxy] Response status:', response.status);
-    console.log('[Proxy] Response status text:', response.statusText);
-    console.log('[Proxy] Response data length:', data.length);
-    console.log('[Proxy] Response data (first 200 chars):', data.substring(0, 200));
-    console.log('[Proxy] Response data (last 200 chars):', data.substring(Math.max(0, data.length - 200)));
-    console.log('[Proxy] Response data ends with }: ', data.trim().endsWith('}'));
-    if (parsedData) {
-      console.log('[Proxy] Parsed data JSON string length:', JSON.stringify(parsedData).length);
-      console.log('[Proxy] Parsed data JSON string (last 200 chars):', JSON.stringify(parsedData).substring(Math.max(0, JSON.stringify(parsedData).length - 200)));
-    }
-    
-    if (response.status === 401) {
-      console.error('[Proxy] ❌ 401 Unauthorized Error');
-      console.error('[Proxy] Error response body (full):', data);
-      console.error('[Proxy] Authorization header was sent?', !!headers['Authorization']);
-      console.error('[Proxy] Authorization variable exists?', !!authorization);
-      if (headers['Authorization']) {
-        console.error('[Proxy] Authorization header value (first 50 chars):', headers['Authorization'].substring(0, 50) + '...');
-      } else {
-        console.error('[Proxy] ⚠️ Authorization header was NOT included in forwarded headers!');
-        console.error('[Proxy] This is the root cause of the 401 error.');
-      }
-      console.error('[Proxy] Request URL:', url.toString());
-      console.error('[Proxy] All forwarded headers:', Object.keys(headers));
-      console.error('[Proxy] Authorization variable value (first 50 chars):', authorization ? authorization.substring(0, 50) + '...' : 'null');
-    } else if (response.status >= 400) {
-      console.error('[Proxy] ❌ Error response:', response.status, data);
-    } else {
-      console.log('[Proxy] ✅ Success response');
-    }
-    console.log('[Proxy] ========================================');
     
     // レスポンスヘッダーをコピー
     const responseHeaders = new Headers();
@@ -249,16 +175,7 @@ async function handleRequest(
       responseHeaders.set('content-type', 'application/json; charset=utf-8');
     }
     
-    // レスポンスサイズを制限しないように設定（parsedDataがある場合はそのサイズを使用）
-    // 注意: content-lengthはNextResponse.json()が自動的に設定するため、手動設定は不要
-    // ただし、デバッグ用にログ出力
-    if (parsedData !== null) {
-      console.log('[Proxy] Parsed data size:', JSON.stringify(parsedData).length, 'bytes');
-    } else {
-      console.log('[Proxy] Text data size:', data.length, 'bytes');
-    }
-
-    // 401エラーの場合、詳細情報をレスポンスに含める（デバッグ用）
+    // 401エラーの場合、エラーレスポンスを返す
     if (response.status === 401) {
       let errorData: any = {};
       try {
@@ -272,42 +189,18 @@ async function handleRequest(
             errorData = JSON.parse(trimmedData);
           } else {
             // JSONが不完全な場合、手動で構築
-            errorData = { message: 'Unauthorized', statusCode: 401, rawResponse: data };
+            errorData = { message: 'Unauthorized', statusCode: 401 };
           }
         } else {
           errorData = { message: 'Unauthorized', statusCode: 401 };
         }
       } catch (parseError) {
-        // JSONパースに失敗した場合は文字列として扱う
-        console.error('[Proxy] Failed to parse error response as JSON:', parseError);
-        console.error('[Proxy] Raw response data:', data);
-        errorData = { 
-          message: 'Unauthorized', 
-          statusCode: 401, 
-          rawResponse: data,
-          parseError: parseError instanceof Error ? parseError.message : String(parseError)
-        };
+        // JSONパースに失敗した場合はデフォルトエラーを返す
+        errorData = { message: 'Unauthorized', statusCode: 401 };
       }
       
-      // デバッグ情報を必ず含める
-      const debugResponse = {
-        ...errorData,
-        _debug: {
-          authorizationHeaderReceived: !!authorization,
-          authorizationHeaderForwarded: !!headers['Authorization'],
-          forwardedHeaders: Object.keys(headers),
-          requestUrl: url.toString(),
-          allIncomingHeaders: Array.from(request.headers.entries()).map(([k]) => k),
-          authorizationHeaderValue: authorization ? authorization.substring(0, 50) + '...' : null,
-          responseDataLength: data.length,
-          responseDataPreview: data.substring(0, 200),
-        }
-      };
-      
-      console.log('[Proxy] Returning 401 error with debug info:', JSON.stringify(debugResponse, null, 2));
-      
       return NextResponse.json(
-        debugResponse,
+        errorData,
         {
           status: response.status,
           statusText: response.statusText,
@@ -318,15 +211,7 @@ async function handleRequest(
 
     // クライアントにレスポンスを返す
     // JSONレスポンスの場合は、パース済みデータをJSON文字列として返す
-    console.log('[Proxy] Content-Type:', contentType);
-    console.log('[Proxy] Parsed data exists:', parsedData !== null);
-    console.log('[Proxy] Parsed data type:', typeof parsedData);
-    
     if (contentType.includes('application/json') && parsedData !== null) {
-      console.log('[Proxy] ✅ Returning JSON response (Base64 encoded)');
-      console.log('[Proxy] JSON string length:', data.length);
-      console.log('[Proxy] JSON string ends with }: ', data.trim().endsWith('}'));
-      
       // Edge Runtime用: TextEncoderとbtoaを使用してBase64エンコード
       // TextEncoderを使用してUint8Arrayに変換し、btoaでBase64化
       const encoder = new TextEncoder();
@@ -354,19 +239,10 @@ async function handleRequest(
         base64Encoded = btoa(stringFromCharCode);
       }
       
-      console.log('[Proxy] Base64 encoded length:', base64Encoded.length);
-      console.log('[Proxy] Original data length:', data.length);
-      console.log('[Proxy] Compression ratio:', ((base64Encoded.length / data.length) * 100).toFixed(2) + '%');
-      
       // Content-Typeヘッダーを明示的に設定
       responseHeaders.set('content-type', 'application/json; charset=utf-8');
       // Base64エンコード方式であることを示すカスタムヘッダーを追加
       responseHeaders.set('X-Response-Encoding', 'base64');
-      
-      const byteLength = uint8Array.length;
-      console.log('[Proxy] Content-Length (original, calculated):', byteLength);
-      console.log('[Proxy] Parsed data type:', typeof parsedData);
-      console.log('[Proxy] Parsed data keys:', parsedData ? Object.keys(parsedData) : 'null');
       
       // Base64エンコードされたデータをJSONオブジェクトとして返す
       // { "encoded": "base64string" } の形式で返す
@@ -384,7 +260,6 @@ async function handleRequest(
         headers: responseHeaders,
       });
     } else {
-      console.log('[Proxy] ⚠️ Returning text response (not JSON or parsedData is null)');
       // JSON以外の場合はテキストとして返す
       // content-lengthヘッダーを削除することで、Transfer-Encoding: chunkedが使用される
       responseHeaders.delete('content-length');
@@ -395,13 +270,6 @@ async function handleRequest(
       });
     }
   } catch (error) {
-    console.error('[Proxy] ========================================');
-    console.error('[Proxy] ❌ Proxy error occurred');
-    console.error('[Proxy] Error type:', error instanceof Error ? error.constructor.name : typeof error);
-    console.error('[Proxy] Error message:', error instanceof Error ? error.message : String(error));
-    console.error('[Proxy] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-    console.error('[Proxy] ========================================');
-    
     return NextResponse.json(
       { 
         error: 'Failed to proxy request',

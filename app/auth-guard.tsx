@@ -34,7 +34,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           await signInWithRedirect();
         }
       } catch (error: any) {
-        console.error('Auth check failed:', error);
         // Cookieを削除
         removeAuthCookie();
         setIsAuthenticated(false);
@@ -45,7 +44,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           error?.message?.includes('already a signed in user');
         
         if (isAlreadyAuthenticatedError) {
-          console.log('Clearing stale session and redirecting to sign in...');
           try {
             // 古いセッションをクリア
             await signOut();
@@ -54,13 +52,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
             await new Promise(resolve => setTimeout(resolve, 100));
             await signInWithRedirect();
           } catch (signOutError) {
-            console.error('Sign out failed:', signOutError);
             removeAuthCookie();
             // サインアウトに失敗しても、サインインにリダイレクトを試みる
             try {
               await signInWithRedirect();
             } catch (signInError) {
-              console.error('Sign in redirect failed:', signInError);
+              // エラーは無視（リダイレクト処理は継続）
             }
           }
         } else {
@@ -68,7 +65,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           try {
             await signInWithRedirect();
           } catch (signInError: any) {
-            console.error('Sign in redirect failed:', signInError);
             // UserAlreadyAuthenticatedExceptionが発生した場合も同様に処理
             if (signInError?.name === 'UserAlreadyAuthenticatedException' || 
                 signInError?.message?.includes('already a signed in user')) {
@@ -78,7 +74,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
                 await new Promise(resolve => setTimeout(resolve, 100));
                 await signInWithRedirect();
               } catch (finalError) {
-                console.error('Final sign in attempt failed:', finalError);
+                // エラーは無視（リダイレクト処理は継続）
               }
             }
           }

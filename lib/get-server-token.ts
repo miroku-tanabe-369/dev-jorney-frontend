@@ -20,7 +20,6 @@ export async function getServerToken(): Promise<string | null> {
     
     return null;
   } catch (error) {
-    console.error('[Get Server Token] Error getting token from headers:', error);
     return null;
   }
 }

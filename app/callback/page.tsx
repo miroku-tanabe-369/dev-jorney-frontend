@@ -79,7 +79,6 @@ export default function CallbackPage() {
           router.push('/');
         }, 3000);
       } catch (err) {
-        console.error('Callback error:', err);
         setStatus('error');
         setErrorMessage('認証処理中にエラーが発生しました');
         setTimeout(() => {

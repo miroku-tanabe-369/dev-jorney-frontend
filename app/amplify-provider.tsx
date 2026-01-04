@@ -10,7 +10,6 @@ export function AmplifyProvider({ children }: { children: React.ReactNode }) {
     try {
       configureAmplify();
     } catch (error) {
-      console.error('Failed to configure Amplify:', error);
       setConfigError(error instanceof Error ? error.message : 'Unknown error');
     }
   }, []);

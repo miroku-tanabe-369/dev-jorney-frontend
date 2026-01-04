@@ -44,15 +44,9 @@ apiClient.interceptors.request.use(async (config) => {
         if (token) {
             //バックエンドのExtractJwt.fromAuthHeaderAsBearerToken() に合わせる
             config.headers.Authorization = `Bearer ${token}`;
-            // デバッグ用ログ
-            console.log('[API Client] ✅ Authorization header set:', `Bearer ${token.substring(0, 20)}...`);
-            console.log('[API Client] Request URL:', config.url);
-            console.log('[API Client] Base URL:', config.baseURL);
-        } else {
-            console.warn('[API Client] ❌ No access token found in session');
         }
     } catch (error) {
-        console.error('[API Client] Error fetching auth session:', error);
+        // エラーは無視（認証エラーは後続の処理で検出される）
     }
     return config;
 });
@@ -64,9 +58,6 @@ apiClient.interceptors.response.use(
         const encoding = response.headers['x-response-encoding'];
         if (encoding === 'base64' && response.data && typeof response.data === 'object' && response.data.encoded) {
             try {
-                console.log('[API Client] ✅ Detected Base64 encoded response, decoding...');
-                console.log('[API Client] Base64 string length:', response.data.encoded.length);
-                
                 // Base64デコード（ブラウザ環境ではatobを使用）
                 let decodedString: string;
                 if (typeof window !== 'undefined' && typeof window.atob === 'function') {
@@ -82,24 +73,14 @@ apiClient.interceptors.response.use(
                     decodedString = Buffer.from(response.data.encoded, 'base64').toString('utf8');
                 }
                 
-                console.log('[API Client] Decoded string length:', decodedString.length);
-                console.log('[API Client] Decoded string preview (first 300 chars):', decodedString.substring(0, 300));
-                console.log('[API Client] Decoded string preview (last 100 chars):', decodedString.substring(Math.max(0, decodedString.length - 100)));
-                
                 // JSONパース
                 const trimmedData = decodedString.trim();
                 if (trimmedData.startsWith('{') && trimmedData.endsWith('}')) {
                     response.data = JSON.parse(trimmedData);
-                    console.log('[API Client] ✅ Successfully decoded and parsed Base64 response');
-                    console.log('[API Client] Parsed data keys:', Object.keys(response.data));
                 } else {
-                    console.error('[API Client] ❌ Decoded string is not valid JSON');
-                    console.error('[API Client] First 100 chars:', trimmedData.substring(0, 100));
-                    console.error('[API Client] Last 100 chars:', trimmedData.substring(Math.max(0, trimmedData.length - 100)));
                     throw new Error('Decoded response data is not valid JSON.');
                 }
             } catch (decodeError) {
-                console.error('[API Client] ❌ Failed to decode Base64 response:', decodeError);
                 throw decodeError;
             }
         } else if (typeof response.data === 'string') {
@@ -107,25 +88,15 @@ apiClient.interceptors.response.use(
             const contentType = response.headers['content-type'] || '';
             if (contentType.includes('application/json')) {
                 try {
-                    console.log('[API Client] ⚠️ Response data is string, auto-parsing JSON...');
-                    console.log('[API Client] String length:', response.data.length);
-                    console.log('[API Client] String preview (first 300 chars):', response.data.substring(0, 300));
-                    console.log('[API Client] String preview (last 100 chars):', response.data.substring(Math.max(0, response.data.length - 100)));
-                    
                     // 不完全なJSONの場合を考慮して、可能な限りパースを試みる
                     const trimmedData = response.data.trim();
                     if (trimmedData.startsWith('{') && trimmedData.endsWith('}')) {
                         response.data = JSON.parse(trimmedData);
-                        console.log('[API Client] ✅ Successfully parsed JSON string');
                     } else {
-                        console.error('[API Client] ❌ JSON string is incomplete (does not start with { or end with })');
-                        console.error('[API Client] First 100 chars:', trimmedData.substring(0, 100));
-                        console.error('[API Client] Last 100 chars:', trimmedData.substring(Math.max(0, trimmedData.length - 100)));
                         // 不完全なJSONの場合は、エラーを投げる
                         throw new Error('Response data is incomplete. Expected JSON but received incomplete string.');
                     }
                 } catch (parseError) {
-                    console.error('[API Client] ❌ Failed to parse JSON string:', parseError);
                     // パースに失敗した場合はエラーを投げる（呼び出し側でエラーハンドリング）
                     throw parseError;
                 }
@@ -158,7 +129,6 @@ apiClient.interceptors.response.use(
                     }
                 } catch (decodeError) {
                     // デコードに失敗した場合はそのまま返す
-                    console.error('[API Client] ❌ Failed to decode Base64 error response:', decodeError);
                 }
             } else if (typeof error.response.data === 'string') {
                 const contentType = error.response.headers['content-type'] || '';

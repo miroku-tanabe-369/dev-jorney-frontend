@@ -14,11 +14,6 @@ export const configureAmplify = () => {
   const logoutUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
   if (!userPoolId || !userPoolClientId || !domain) {
-    console.error('Missing required Cognito environment variables', {
-      userPoolId: !!userPoolId,
-      userPoolClientId: !!userPoolClientId,
-      domain: !!domain,
-    });
     throw new Error('Missing required Cognito environment variables. Please check Amplify Console environment variables.');
   }
 
@@ -43,9 +38,7 @@ export const configureAmplify = () => {
         },
       },
     }, { ssr: true });
-    console.log('Amplify configured successfully');
   } catch (error) {
-    console.error('Failed to configure Amplify:', error);
     throw error;
   }
 };

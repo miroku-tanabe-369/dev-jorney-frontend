@@ -19,11 +19,7 @@ export default async function DashboardPage() {
   // サーバーサイドで認証トークンを取得
   const token = await getServerToken();
   
-  console.log('[Dashboard Server] Token retrieved:', token ? 'Yes' : 'No');
-  console.log('[Dashboard Server] Token length:', token?.length || 0);
-  
   if (!token) {
-    console.error('[Dashboard Server] ❌ No token found, redirecting to login');
     // トークンが存在しない場合はログインページにリダイレクト
     redirect('/login');
   }
@@ -32,7 +28,6 @@ export default async function DashboardPage() {
   let error: string | null = null;
 
   try {
-    console.log('[Dashboard Server] ✅ Calling backend API directly (bypassing proxy)...');
     // サーバーサイドで直接バックエンドAPIを呼び出し
     dashboardData = await serverApiRequest<UserDashboardResponseDto>(
       'users/dashboard',
@@ -42,19 +37,11 @@ export default async function DashboardPage() {
       }
     );
 
-    console.log('[Dashboard Server] ✅ API response received');
-    console.log('[Dashboard Server] Response data keys:', dashboardData ? Object.keys(dashboardData) : 'null');
-    console.log('[Dashboard Server] UserInfo exists:', !!dashboardData?.userInfo);
-
     // データの検証
     if (!dashboardData || !dashboardData.userInfo) {
-      console.error('[Dashboard Server] ❌ Invalid response data: userInfo is missing');
       error = 'Invalid response data: userInfo is missing';
     }
   } catch (apiError) {
-    console.error('[Dashboard Server] ❌ Error fetching dashboard data:', apiError);
-    console.error('[Dashboard Server] Error type:', apiError instanceof Error ? apiError.constructor.name : typeof apiError);
-    console.error('[Dashboard Server] Error message:', apiError instanceof Error ? apiError.message : String(apiError));
     error = apiError instanceof Error ? apiError.message : 'Failed to load dashboard data';
   }
 

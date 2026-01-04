@@ -33,19 +33,10 @@ export default function SkillTreePage() {
   useEffect(() => {
     apiClient.get<SkilltreeResponseDto>('skilltrees/FSD_001')
       .then(response => {
-        console.log('[SkillTree] Full response data:', response.data);
-        console.log('[SkillTree] Response data keys:', Object.keys(response.data || {}));
-        console.log('[SkillTree] skilltreeInfo:', response.data?.skilltreeInfo);
-        console.log('[SkillTree] nodes array:', response.data?.nodes);
-        console.log('[SkillTree] nodes length:', response.data?.nodes?.length);
-        console.log('[SkillTree] nodes content:', JSON.stringify(response.data?.nodes, null, 2));
-        console.log('[SkillTree] quests array:', response.data?.quests);
-        console.log('[SkillTree] quests length:', response.data?.quests?.length);
         setSkilltreeData(response.data);
         setLoading(false);
       })
       .catch(error => {
-        console.error('Error fetching skilltree data:', error);
         setError('Failed to load skilltree data');
         setLoading(false);
       });
@@ -114,7 +105,6 @@ export default function SkillTreePage() {
                       {[...skilltreeData.nodes]
                         .sort((a, b) => a.nodeOrder - b.nodeOrder)
                         .map((node) => {
-                          console.log('[SkillTree] Rendering node:', node);
                           const status = getNodeStatus(node.statusCode)
                           return (
                             <button
