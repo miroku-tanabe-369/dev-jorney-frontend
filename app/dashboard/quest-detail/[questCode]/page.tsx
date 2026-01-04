@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { Clock, Target, Star, BookOpen, CheckCircle2 } from "lucide-react"
 import { QuestDetailResponseDto } from "@/types/quest"
-import { parseJsonbToArray, getCompleteButtonText } from "@/lib/quest"
+import { parseJsonbToArray } from "@/lib/quest"
 import apiClient from "@/lib/api-client"
 
 export default function QuestDetailPage() {
@@ -23,49 +23,59 @@ export default function QuestDetailPage() {
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({})
   const [isCompleting, setIsCompleting] = useState(false)
 
-  // ボタンの活性状態を判定する関数
-  function isCompleteButtonEnabled(
-    checkedItems: Record<string, boolean>, 
-    checklistItems: string[],
-    statusCode: string | undefined
-  ): boolean {
-    //チェックリストの総数を取得
-    const totalItems = checklistItems.length;
-
-    // チェックリストが空の場合falseを返す
-    if (totalItems === 0) {
-      return false;
-    }
-
-    //チェック済みの数を取得
-    const completedItems = Object.values(checkedItems).filter(Boolean).length;
-    
-    // ステータスが完了済みまたは進行中の場合はfalseを返却する
-    const isNotInProgressOrCompleted = statusCode !== 'COMPLETED' && statusCode !== 'IN_PROGRESS';
-
-    // 全てチェック済みかつ、完了済み・進行中でない場合のみ　true
-    return completedItems === totalItems && isNotInProgressOrCompleted;
-  }
-
   // チェックリストの完了状態を計算
   const checklistItems = parseJsonbToArray(questDetailData?.checklistItems);
   const totalItems = checklistItems.length;
   const completedItems = Object.values(checkedItems).filter(Boolean).length;
   const allChecked = totalItems > 0 && completedItems === totalItems;
 
-  // クエスト完了ボタンが活性化の判定を行う
-  const buttonEnabled = isCompleteButtonEnabled(
-    checkedItems,
-    checklistItems,
-    questDetailData?.statusCode
-  );
+  // ボタンの活性状態を判定する関数
+  const getButtonEnabled = (): boolean => {
+    const statusCode = questDetailData?.statusCode;
+    
+    // 未着手の場合: 常に活性
+    if (statusCode === 'NOT_STARTED' || !statusCode) {
+      return true;
+    }
+    
+    // 完了済みの場合: 非活性
+    if (statusCode === 'COMPLETED') {
+      return false;
+    }
+    
+    // 進行中の場合: チェックリストが全て完了している場合のみ活性
+    if (statusCode === 'IN_PROGRESS') {
+      return allChecked;
+    }
+    
+    return false;
+  };
 
-  // クエスト完了ボタンの表示テキストを取得（checkedItemsの状態も考慮）
-  const buttonText = getCompleteButtonText(
-    questDetailData?.statusCode,
-    isCompleting,
-    allChecked
-  );
+  // ボタンの表示テキストを取得
+  const getButtonText = (): string => {
+    const statusCode = questDetailData?.statusCode;
+    
+    if (isCompleting) {
+      return 'Completing...';
+    }
+    
+    if (statusCode === 'COMPLETED') {
+      return 'Quest Completed';
+    }
+    
+    if (statusCode === 'IN_PROGRESS') {
+      if (allChecked) {
+        return 'Quest Complete';
+      }
+      return 'In Progress';
+    }
+    
+    // NOT_STARTED または未設定の場合
+    return 'Start Quest';
+  };
+
+  const buttonEnabled = getButtonEnabled();
+  const buttonText = getButtonText();
   
 
   // クエスト詳細データを取得する関数（共通化）
@@ -92,12 +102,42 @@ export default function QuestDetailPage() {
     }
 
     fetchQuestDetail()
+      .then((data) => {
+        // チェックリストの初期状態を設定（全て未チェック）
+        const checklistItems = parseJsonbToArray(data?.checklistItems);
+        const initialCheckedItems: Record<string, boolean> = {};
+        checklistItems.forEach((_, index) => {
+          initialCheckedItems[`checklist-${index}`] = false;
+        });
+        setCheckedItems(initialCheckedItems);
+      })
       .finally(() => {
         setLoading(false);
       });
   }, [questCode])
 
-  // クエスト完了処理
+  // クエスト開始処理（未着手 → 進行中）
+  const handleStartQuest = async () => {
+    setIsCompleting(true);
+    setError(null);
+    
+    try {
+      // クエスト開始APIを呼び出し
+      await apiClient.put(
+        `quest-detail/start-quest/${questCode}`
+      );
+      
+      // 成功後、データを再取得して最新の状態を反映
+      await fetchQuestDetail();
+    } catch (error) {
+      console.error('Error starting quest:', error);
+      setError('Failed to start quest. Please try again.');
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  // クエスト完了処理（進行中 → 完了）
   const handleCompleteQuest = async () => {
     setIsCompleting(true);
     setError(null);
@@ -115,6 +155,19 @@ export default function QuestDetailPage() {
       setError('Failed to complete quest. Please try again.');
     } finally {
       setIsCompleting(false);
+    }
+  };
+
+  // ボタンクリック時の処理
+  const handleButtonClick = async () => {
+    const statusCode = questDetailData?.statusCode;
+    
+    if (statusCode === 'NOT_STARTED' || !statusCode) {
+      // 未着手 → 進行中
+      await handleStartQuest();
+    } else if (statusCode === 'IN_PROGRESS' && allChecked) {
+      // 進行中 + チェックリスト完了 → 完了
+      await handleCompleteQuest();
     }
   };
 
@@ -222,16 +275,13 @@ export default function QuestDetailPage() {
                 </CardContent>
               </Card>
 
-              {/* Action Buttons */}
+              {/* Action Button */}
               <div className="flex gap-3">
-                <Button className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90" size="lg">
-                  Continue Learning
-                </Button>
                 <Button 
-                  variant="outline" 
+                  className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90" 
                   size="lg"
                   disabled={!buttonEnabled || isCompleting}
-                  onClick={handleCompleteQuest}
+                  onClick={handleButtonClick}
                 >
                   {buttonText}
                 </Button>
