@@ -28,7 +28,7 @@ export async function serverApiRequest<T = any>(
     method?: string;
     headers?: Record<string, string>;
     body?: any;
-    token?: string; // 認証トークン（Access Token）
+    token?: string; // 認証トークン（ID Token）
   } = {}
 ): Promise<T> {
   const apiBaseUrl = getApiBaseUrl();
