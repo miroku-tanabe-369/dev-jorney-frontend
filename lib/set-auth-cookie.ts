@@ -14,8 +14,7 @@ import { fetchAuthSession } from '@aws-amplify/auth';
 export async function setAuthCookie() {
   try {
     const session = await fetchAuthSession();
-    // ID Tokenを使用（nameとemailが含まれる）
-    const token = session.tokens?.idToken?.toString();
+    const token = session.tokens?.accessToken?.toString();
     
     if (token) {
       // Cookieにトークンを保存（HttpOnlyはfalseにして、JavaScriptからアクセス可能にする）

@@ -54,7 +54,7 @@ export default async function DashboardPage() {
           {/* Header */}
           <div>
             <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-            <p className="mt-2 text-muted-foreground">Welcome back! Here's your learning progress overview.</p>
+            <p className="mt-2 text-muted-foreground">おかえりなさい！現在の学習状況です</p>
           </div>
 
           {/* Status Summary - Three Cards */}
@@ -70,7 +70,6 @@ export default async function DashboardPage() {
                 ) : (
                   <>
                     <div className="text-3xl font-bold text-card-foreground">{dashboardData?.userInfo.currentLevel}</div>
-                    <p className="mt-1 text-xs text-muted-foreground">Intermediate Developer</p>
                   </>
                 )}
               </CardContent>
@@ -83,7 +82,6 @@ export default async function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-card-foreground">{dashboardData?.userInfo.totalSkillPoint}</div>
-                <p className="mt-1 text-xs text-muted-foreground">+180 this week</p>
               </CardContent>
             </Card>
 
@@ -105,13 +103,12 @@ export default async function DashboardPage() {
             <Card className="border-border bg-card">
               <CardHeader>
                 <CardTitle className="text-card-foreground">In Progress Quest</CardTitle>
-                <CardDescription>Continue your current learning journey</CardDescription>
+                <CardDescription>学習を再開する</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold text-card-foreground">{dashboardData?.currentQuest?.questName}</h3>
-                    <Badge variant="secondary">Level 5</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {dashboardData?.currentQuest?.questDetail}
@@ -153,7 +150,7 @@ export default async function DashboardPage() {
             <Card className="border-border bg-card">
               <CardHeader>
                 <CardTitle className="text-card-foreground">Recent Achievements</CardTitle>
-                <CardDescription>Your latest completed quests and earned SP</CardDescription>
+                <CardDescription>完了した最新のクエストと獲得SP</CardDescription>
               </CardHeader>
               <CardContent>
                 {error ? (

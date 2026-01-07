@@ -40,8 +40,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(async (config) => {
     try {
         const session = await fetchAuthSession();
-        // ID Tokenを使用（nameとemailが含まれる）
-        const token = session.tokens?.idToken?.toString();
+        const token = session.tokens?.accessToken?.toString(); //Access Tokenを取得
         if (token) {
             //バックエンドのExtractJwt.fromAuthHeaderAsBearerToken() に合わせる
             config.headers.Authorization = `Bearer ${token}`;

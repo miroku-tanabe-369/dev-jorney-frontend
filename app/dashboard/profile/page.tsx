@@ -188,7 +188,7 @@ export default function ProfilePage() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">Profile</h1>
-            <p className="mt-2 text-muted-foreground">Your learning statistics, goals, and achievements.</p>
+            <p className="mt-2 text-muted-foreground">あなたのプロフィール情報</p>
           </div>
 
           {error && (
@@ -364,14 +364,6 @@ export default function ProfilePage() {
                       </div>
                     </div>
                   </div>
-
-                  <div className="flex items-center justify-between border-t border-border pt-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/20">
-                        <Flame className="h-5 w-5 text-orange-500" />
-                      </div>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -384,7 +376,7 @@ export default function ProfilePage() {
                   <div className="flex items-center justify-between">
                     <div>
                   <CardTitle className="text-card-foreground">Basic Information</CardTitle>
-                  <CardDescription>Your profile details</CardDescription>
+                  <CardDescription>あなたのプロフィール情報</CardDescription>
                     </div>
                     {!isEditingBasicInfo && (
                       <Button
@@ -472,7 +464,7 @@ export default function ProfilePage() {
               <Card className="border-border bg-card">
                 <CardHeader>
                   <CardTitle className="text-card-foreground">Acquired Skills</CardTitle>
-                  <CardDescription>Technologies and frameworks you've mastered</CardDescription>
+                  <CardDescription>習得技術</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">

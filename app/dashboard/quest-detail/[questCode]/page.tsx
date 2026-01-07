@@ -184,12 +184,7 @@ export default function QuestDetailPage() {
         <div className="mx-auto max-w-7xl">
           {/* Header */}
           <div className="mb-8">
-            <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Frontend Development</span>
-              <span>•</span>
-              <span>Level 5</span>
-            </div>
-            <h1 className="text-3xl font-bold text-foreground">Advanced React Patterns</h1>
+            <h1 className="text-3xl font-bold text-foreground">{questDetailData?.questName}</h1>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
@@ -246,7 +241,7 @@ export default function QuestDetailPage() {
               <Card className="border-border bg-card">
                 <CardHeader>
                   <CardTitle className="text-card-foreground">Learning Goals</CardTitle>
-                  <CardDescription>What you'll master in this quest</CardDescription>
+                  <CardDescription>このクエストで学ぶこと</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
@@ -264,7 +259,7 @@ export default function QuestDetailPage() {
               <Card className="border-border bg-card">
                 <CardHeader>
                   <CardTitle className="text-card-foreground">Completion Criteria</CardTitle>
-                  <CardDescription>Requirements to complete this quest</CardDescription>
+                  <CardDescription>このクエストを完了するための条件</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
@@ -299,7 +294,7 @@ export default function QuestDetailPage() {
               <Card className="sticky top-8 border-border bg-card">
                 <CardHeader>
                   <CardTitle className="text-card-foreground">Progress Checklist</CardTitle>
-                  <CardDescription>Track your learning progress</CardDescription>
+                  <CardDescription>学習の進捗を追跡する</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">

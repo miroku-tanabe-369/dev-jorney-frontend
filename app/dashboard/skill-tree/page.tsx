@@ -85,7 +85,7 @@ export default function SkillTreePage() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">Skill Tree</h1>
             <p className="mt-2 text-muted-foreground">
-              Your personalized learning roadmap. Complete quests to unlock new skills.
+            あなた専用の学習ロードマップ。クエストを完了して新しいスキルを解放しましょう。
             </p>
           </div>
 
@@ -142,8 +142,6 @@ export default function SkillTreePage() {
                       <h3 className="text-xl font-semibold text-card-foreground">{selectedNode.nodeName}</h3>
                       {getStatusIcon(selectedNode)}
                     </div>
-                    {/* TODO: おそらくここのNodeCode:は不要のため、プレビューしてみて削除予定 */}
-                    <p className="text-sm text-muted-foreground">Node Code: {selectedNode.nodeCode}</p>
                   </div>
 
                   <div className="space-y-2 border-t border-border pt-4">

@@ -4,6 +4,9 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Home, Network, FileText, User, Trophy } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useEffect, useState } from "react"
+import { UserDetailResponseDto } from "@/types/profile"
+import apiClient from "@/lib/api-client"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -13,6 +16,19 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const [userProfile, setUserProfile] = useState<UserDetailResponseDto | null>(null)
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await apiClient.get<UserDetailResponseDto>('/users/profile')
+        setUserProfile(response.data)
+      } catch (error) {
+        // エラーは無視（認証エラーなどは後続の処理で検出される）
+      }
+    }
+    fetchUserProfile()
+  }, [])
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-sidebar-border bg-sidebar">
@@ -50,12 +66,20 @@ export function Sidebar() {
         {/* User info */}
         <div className="border-t border-sidebar-border p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-sm font-medium">
-              JD
-            </div>
-            <div className="flex-1 text-sm">
-              <p className="font-medium text-sidebar-foreground">John Developer</p>
-              <p className="text-muted-foreground">Level 5</p>
+            {userProfile?.userDetail.icon ? (
+              <img 
+                src={userProfile.userDetail.icon} 
+                alt={userProfile.userDetail.name || 'User'} 
+                className="h-10 w-10 rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
+                {userProfile?.userDetail.name?.charAt(0).toUpperCase() || 'U'}
+              </div>
+            )}
+            <div className="flex-1 text-sm min-w-0">
+              <p className="font-medium text-sidebar-foreground truncate">{userProfile?.userDetail.name || 'Loading...'}</p>
+              <p className="text-muted-foreground">Level {userProfile?.userDetail.currentLevel || '-'}</p>
             </div>
           </div>
         </div>
