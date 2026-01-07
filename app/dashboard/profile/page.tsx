@@ -75,67 +75,12 @@ export default function ProfilePage() {
         return
       }
       
-      // 画像を圧縮・リサイズしてからBase64に変換
+      // FileReaderでBase64に変換
       const reader = new FileReader()
-      reader.onloadend = (event) => {
-        const img = new Image()
-        img.onload = () => {
-          // Canvasを作成して画像をリサイズ・圧縮
-          const canvas = document.createElement('canvas')
-          const MAX_WIDTH = 300  // 最大幅を300pxに制限
-          const MAX_HEIGHT = 300  // 最大高さを300pxに制限
-          const MAX_SIZE = 100 * 1024  // 最大サイズを100KBに制限（Base64エンコード前）
-          
-          let width = img.width
-          let height = img.height
-          
-          // アスペクト比を維持しながらリサイズ
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height = (height * MAX_WIDTH) / width
-              width = MAX_WIDTH
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width = (width * MAX_HEIGHT) / height
-              height = MAX_HEIGHT
-            }
-          }
-          
-          canvas.width = width
-          canvas.height = height
-          
-          // 画像を描画
-          const ctx = canvas.getContext('2d')
-          if (!ctx) {
-            setError('Failed to process image')
-            return
-          }
-          ctx.drawImage(img, 0, 0, width, height)
-          
-          // 品質を調整しながらBase64に変換
-          let quality = 0.9
-          let base64String = canvas.toDataURL('image/jpeg', quality)
-          
-          // Base64文字列のサイズをチェック（プレフィックスを除いた部分）
-          const base64Data = base64String.split(',')[1]
-          let base64Size = base64Data.length * 0.75  // Base64は約1.33倍のサイズになる
-          
-          // サイズが大きすぎる場合は品質を下げる
-          while (base64Size > MAX_SIZE && quality > 0.1) {
-            quality -= 0.1
-            base64String = canvas.toDataURL('image/jpeg', quality)
-            const newBase64Data = base64String.split(',')[1]
-            base64Size = newBase64Data.length * 0.75
-          }
-          
-          setIconPreview(base64String)
-          setEditFormData(prev => ({ ...prev, icon: base64String }))
-        }
-        img.onerror = () => {
-          setError('Failed to load image')
-        }
-        img.src = event.target?.result as string
+      reader.onloadend = () => {
+        const base64String = reader.result as string
+        setIconPreview(base64String)
+        setEditFormData(prev => ({ ...prev, icon: base64String }))
       }
       reader.readAsDataURL(file)
     }
